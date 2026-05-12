@@ -20,7 +20,9 @@ const PAGE_SIZE = 10;
 
 export default function HoldingsList({ positions }: { positions: Position[] }) {
   const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? positions : positions.slice(0, PAGE_SIZE);
+  const above1k = positions.filter((p) => (p.value ?? 0) >= 1000);
+  const visible = showAll ? positions : above1k.slice(0, PAGE_SIZE);
+  const hasMore = !showAll && (above1k.length > PAGE_SIZE || positions.length > above1k.length);
 
   return (
     <div className="space-y-2">
@@ -56,7 +58,7 @@ export default function HoldingsList({ positions }: { positions: Position[] }) {
           </TableBody>
         </Table>
       </div>
-      {positions.length > PAGE_SIZE && (
+      {(hasMore || showAll) && (
         <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
           {showAll ? "Show less" : `Show all ${positions.length} assets`}
         </Button>

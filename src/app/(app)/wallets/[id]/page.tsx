@@ -57,7 +57,7 @@ export default async function WalletPage({ params }: Props) {
           change1d_usd: value != null && change1d != null ? value * (change1d / 100) : null,
           chain: p.relationships.chain.data.id,
         };
-      }).filter((p) => (p.value ?? 0) >= 1000);
+      });
     } catch {
       // malformed cache, ignore
     }

@@ -19,6 +19,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   const wallet = getWallet(entry.wallet_id);
   if (!wallet) return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
 
+  console.log(`[sync] project=${project.name} sync_adapter=${project.sync_adapter} hl_dex=${project.hl_dex} wallet=${wallet.address}`);
   try {
     if (project.sync_adapter === "hyperliquid") {
       const stats = await fetchWalletStats(wallet.address, project.hl_dex);
