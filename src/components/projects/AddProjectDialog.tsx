@@ -23,6 +23,7 @@ export default function AddProjectDialog() {
   const [url, setUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [syncAdapter, setSyncAdapter] = useState("");
+  const [hlDex, setHlDex] = useState("");
 
   async function save() {
     if (!name) return;
@@ -30,11 +31,11 @@ export default function AddProjectDialog() {
     await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, url: url || null, notes: notes || null, sync_adapter: syncAdapter || null }),
+      body: JSON.stringify({ name, type, url: url || null, notes: notes || null, sync_adapter: syncAdapter || null, hl_dex: hlDex || null }),
     });
     setSaving(false);
     setOpen(false);
-    setName(""); setType("PERP"); setUrl(""); setNotes(""); setSyncAdapter("");
+    setName(""); setType("PERP"); setUrl(""); setNotes(""); setSyncAdapter(""); setHlDex("");
     router.refresh();
   }
 
@@ -76,6 +77,13 @@ export default function AddProjectDialog() {
                 </SelectContent>
               </Select>
             </div>
+            {syncAdapter === "hyperliquid" && (
+              <div className="space-y-1">
+                <Label>HL DEX prefix (optional)</Label>
+                <Input value={hlDex} onChange={(e) => setHlDex(e.target.value)} placeholder="e.g. xyz, km" />
+                <p className="text-xs text-muted-foreground">Only fills for {hlDex || "dex"}:* coins will be counted</p>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>Notes (optional)</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />

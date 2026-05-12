@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS project (
   url          TEXT,
   logo_url     TEXT,
   notes        TEXT,
-  sync_adapter TEXT
+  sync_adapter TEXT,
+  hl_dex       TEXT
 );
 
 CREATE TABLE IF NOT EXISTS wallet_project (

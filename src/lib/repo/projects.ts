@@ -12,6 +12,7 @@ export interface Project {
   logo_url: string | null;
   notes: string | null;
   sync_adapter: SyncAdapter;
+  hl_dex: string | null;
 }
 
 export function listProjects(): Project[] {
@@ -26,7 +27,7 @@ export function getProject(id: string): Project | undefined {
     .get(id) as Project | undefined;
 }
 
-export function createProject(p: Omit<Project, "url" | "logo_url" | "notes" | "sync_adapter"> & Partial<Pick<Project, "url" | "logo_url" | "notes" | "sync_adapter">>): Project {
+export function createProject(p: Omit<Project, "url" | "logo_url" | "notes" | "sync_adapter" | "hl_dex"> & Partial<Pick<Project, "url" | "logo_url" | "notes" | "sync_adapter" | "hl_dex">>): Project {
   const db = getDb();
   const row: Project = {
     id: p.id,
@@ -36,10 +37,11 @@ export function createProject(p: Omit<Project, "url" | "logo_url" | "notes" | "s
     logo_url: p.logo_url ?? null,
     notes: p.notes ?? null,
     sync_adapter: p.sync_adapter ?? null,
+    hl_dex: p.hl_dex ?? null,
   };
   db.prepare(
-    `INSERT INTO project (id, name, type, url, logo_url, notes, sync_adapter) VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(row.id, row.name, row.type, row.url, row.logo_url, row.notes, row.sync_adapter);
+    `INSERT INTO project (id, name, type, url, logo_url, notes, sync_adapter, hl_dex) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(row.id, row.name, row.type, row.url, row.logo_url, row.notes, row.sync_adapter, row.hl_dex);
   return row;
 }
 

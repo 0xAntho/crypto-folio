@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getWallet, getBalanceCache } from "@/lib/repo/wallets";
 import { listByWallet } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
-import { fmtUsd, fmtNumber, fmtPercent, truncateAddress, timeAgo } from "@/lib/format";
+import { fmtUsd, fmtNumber, fmtPercent, timeAgo } from "@/lib/format";
 import { costPerPoint, costPerMVolume, totalCost } from "@/lib/metrics";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import WalletActions from "@/components/wallet/WalletActions";
 import FarmingEntryDialog from "@/components/projects/FarmingEntryDialog";
 import SyncEntryButton from "@/components/wallet/SyncEntryButton";
+import HoldingsList from "@/components/wallet/HoldingsList";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -27,7 +28,7 @@ export default async function WalletPage({ params }: Props) {
 
   let positions: Array<{
     name: string; symbol: string; qty: number; value: number | null;
-    price: number | null; change1d: number | null; chain: string;
+    price: number | null; change1d: number | null; change1d_usd: number | null; chain: string;
   }> = [];
 
   if (cache) {
@@ -35,22 +36,28 @@ export default async function WalletPage({ params }: Props) {
       const parsed = JSON.parse(cache.payload);
       positions = (parsed.positions?.data ?? []).map((p: {
         attributes: {
-          name: string; symbol: string;
+          name: string;
           quantity: { float: number };
           value: number | null;
           price: number | null;
           changes: { percent_1d: number | null } | null;
-          fungible_info: { implementations: Array<{ chain_id: string }> };
-        }
-      }) => ({
-        name: p.attributes.name,
-        symbol: p.attributes.symbol,
-        qty: p.attributes.quantity.float,
-        value: p.attributes.value,
-        price: p.attributes.price,
-        change1d: p.attributes.changes?.percent_1d ?? null,
-        chain: p.attributes.fungible_info.implementations[0]?.chain_id ?? "",
-      }));
+          fungible_info: { name: string; symbol: string; implementations: Array<{ chain_id: string }> };
+        };
+        relationships: { chain: { data: { id: string } } };
+      }) => {
+        const change1d = p.attributes.changes?.percent_1d ?? null;
+        const value = p.attributes.value;
+        return {
+          name: p.attributes.fungible_info.name,
+          symbol: p.attributes.fungible_info.symbol,
+          qty: p.attributes.quantity.float,
+          value,
+          price: p.attributes.price,
+          change1d,
+          change1d_usd: value != null && change1d != null ? value * (change1d / 100) : null,
+          chain: p.relationships.chain.data.id,
+        };
+      }).filter((p) => (p.value ?? 0) >= 1000);
     } catch {
       // malformed cache, ignore
     }
@@ -78,37 +85,7 @@ export default async function WalletPage({ params }: Props) {
       {positions.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-medium">Holdings</h2>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Chain</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                  <TableHead className="text-right">24h</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {positions.map((p, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <span className="font-medium">{p.symbol}</span>
-                      <span className="text-xs text-muted-foreground ml-2">{p.name}</span>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{p.chain}</TableCell>
-                    <TableCell className="text-right">{fmtUsd(p.price, 4)}</TableCell>
-                    <TableCell className="text-right">{fmtNumber(p.qty, 4)}</TableCell>
-                    <TableCell className="text-right">{fmtUsd(p.value)}</TableCell>
-                    <TableCell className={`text-right text-sm ${(p.change1d ?? 0) >= 0 ? "text-green-600" : "text-red-500"}`}>
-                      {fmtPercent(p.change1d)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <HoldingsList positions={positions} />
         </div>
       )}
 

@@ -24,13 +24,14 @@ export default function EditProjectDialog({ project }: { project: Project }) {
   const [url, setUrl] = useState(project.url ?? "");
   const [notes, setNotes] = useState(project.notes ?? "");
   const [syncAdapter, setSyncAdapter] = useState(project.sync_adapter ?? "");
+  const [hlDex, setHlDex] = useState(project.hl_dex ?? "");
 
   async function save() {
     setSaving(true);
     await fetch(`/api/projects/${project.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, url: url || null, notes: notes || null, sync_adapter: syncAdapter || null }),
+      body: JSON.stringify({ name, type, url: url || null, notes: notes || null, sync_adapter: syncAdapter || null, hl_dex: hlDex || null }),
     });
     setSaving(false);
     setOpen(false);
@@ -80,6 +81,13 @@ export default function EditProjectDialog({ project }: { project: Project }) {
                 </SelectContent>
               </Select>
             </div>
+            {syncAdapter === "hyperliquid" && (
+              <div className="space-y-1">
+                <Label>HL DEX prefix (optional)</Label>
+                <Input value={hlDex} onChange={(e) => setHlDex(e.target.value)} placeholder="e.g. xyz, km" />
+                <p className="text-xs text-muted-foreground">Only fills for {hlDex || "dex"}:* coins will be counted</p>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>Notes</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />

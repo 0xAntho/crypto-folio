@@ -21,7 +21,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
 
   try {
     if (project.sync_adapter === "hyperliquid") {
-      const stats = await fetchWalletStats(wallet.address);
+      const stats = await fetchWalletStats(wallet.address, project.hl_dex);
       upsertWalletProject({ ...entry, volume_usd: stats.volume_usd, pnl_usd: stats.pnl_usd });
     }
     return NextResponse.json({ ok: true });

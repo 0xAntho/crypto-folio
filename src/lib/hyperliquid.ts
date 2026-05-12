@@ -19,7 +19,23 @@ export interface HyperliquidStats {
   pnl_usd: number;
 }
 
-export async function fetchWalletStats(address: string): Promise<HyperliquidStats> {
+interface Fill {
+  coin: string;
+  px: string;
+  sz: string;
+  closedPnl: string;
+}
+
+export async function fetchWalletStats(address: string, hlDex?: string | null): Promise<HyperliquidStats> {
+  if (hlDex) {
+    const fills = await hlPost<Fill[]>("userFills", address);
+    const prefix = `${hlDex}:`;
+    const relevant = fills.filter((f) => f.coin.startsWith(prefix));
+    const volume_usd = relevant.reduce((s, f) => s + parseFloat(f.sz) * parseFloat(f.px), 0);
+    const pnl_usd = relevant.reduce((s, f) => s + parseFloat(f.closedPnl), 0);
+    return { volume_usd, pnl_usd };
+  }
+
   type PeriodData = { vlm: string; pnlHistory: [number, number][] };
   type Portfolio = [string, PeriodData][];
 

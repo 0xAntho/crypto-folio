@@ -6,11 +6,16 @@ function authHeader(): string {
   return "Basic " + Buffer.from(`${key}:`).toString("base64");
 }
 
-async function zerionGet<T>(path: string): Promise<T> {
+async function zerionGet<T>(path: string, attempt = 0): Promise<T> {
   const res = await fetch(`${ZERION_BASE}${path}`, {
     headers: { Authorization: authHeader(), accept: "application/json" },
     next: { revalidate: 0 },
   });
+  if (res.status === 429 && attempt < 3) {
+    const wait = (attempt + 1) * 2000;
+    await new Promise((r) => setTimeout(r, wait));
+    return zerionGet<T>(path, attempt + 1);
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`Zerion ${res.status} on ${path}: ${body}`);
@@ -31,12 +36,18 @@ export interface ZerionPosition {
   id: string;
   attributes: {
     name: string;
-    symbol: string;
     quantity: { float: number };
     value: number | null;
     price: number | null;
     changes: { percent_1d: number | null } | null;
-    fungible_info: { implementations: Array<{ chain_id: string }> };
+    fungible_info: {
+      name: string;
+      symbol: string;
+      implementations: Array<{ chain_id: string }>;
+    };
+  };
+  relationships: {
+    chain: { data: { id: string } };
   };
 }
 
