@@ -22,12 +22,13 @@ CREATE TABLE IF NOT EXISTS balance_cache (
 );
 
 CREATE TABLE IF NOT EXISTS project (
-  id       TEXT PRIMARY KEY,
-  name     TEXT UNIQUE NOT NULL,
-  type     TEXT NOT NULL CHECK (type IN ('PERP', 'LP', 'OTHER')),
-  url      TEXT,
-  logo_url TEXT,
-  notes    TEXT
+  id           TEXT PRIMARY KEY,
+  name         TEXT UNIQUE NOT NULL,
+  type         TEXT NOT NULL CHECK (type IN ('PERP', 'LP', 'OTHER')),
+  url          TEXT,
+  logo_url     TEXT,
+  notes        TEXT,
+  sync_adapter TEXT
 );
 
 CREATE TABLE IF NOT EXISTS wallet_project (
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS wallet_project (
   current_apr     REAL,
   gas_usd         REAL,
   points          REAL,
+  pnl_usd         REAL,
   custom_fields   TEXT NOT NULL DEFAULT '{}',
   updated_at      INTEGER NOT NULL,
   UNIQUE(wallet_id, project_id)

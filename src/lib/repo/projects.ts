@@ -2,6 +2,8 @@ import { getDb } from "@/lib/db";
 
 export type ProjectType = "PERP" | "LP" | "OTHER";
 
+export type SyncAdapter = "hyperliquid" | null;
+
 export interface Project {
   id: string;
   name: string;
@@ -9,6 +11,7 @@ export interface Project {
   url: string | null;
   logo_url: string | null;
   notes: string | null;
+  sync_adapter: SyncAdapter;
 }
 
 export function listProjects(): Project[] {
@@ -23,7 +26,7 @@ export function getProject(id: string): Project | undefined {
     .get(id) as Project | undefined;
 }
 
-export function createProject(p: Omit<Project, "url" | "logo_url" | "notes"> & Partial<Pick<Project, "url" | "logo_url" | "notes">>): Project {
+export function createProject(p: Omit<Project, "url" | "logo_url" | "notes" | "sync_adapter"> & Partial<Pick<Project, "url" | "logo_url" | "notes" | "sync_adapter">>): Project {
   const db = getDb();
   const row: Project = {
     id: p.id,
@@ -32,10 +35,11 @@ export function createProject(p: Omit<Project, "url" | "logo_url" | "notes"> & P
     url: p.url ?? null,
     logo_url: p.logo_url ?? null,
     notes: p.notes ?? null,
+    sync_adapter: p.sync_adapter ?? null,
   };
   db.prepare(
-    `INSERT INTO project (id, name, type, url, logo_url, notes) VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(row.id, row.name, row.type, row.url, row.logo_url, row.notes);
+    `INSERT INTO project (id, name, type, url, logo_url, notes, sync_adapter) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(row.id, row.name, row.type, row.url, row.logo_url, row.notes, row.sync_adapter);
   return row;
 }
 

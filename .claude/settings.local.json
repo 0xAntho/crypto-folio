@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:hyperliquid.gitbook.io)",
+      "WebFetch(domain:docs.trade.xyz)"
+    ]
+  }
+}

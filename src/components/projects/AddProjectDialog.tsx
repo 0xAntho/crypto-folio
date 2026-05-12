@@ -22,6 +22,7 @@ export default function AddProjectDialog() {
   const [type, setType] = useState("PERP");
   const [url, setUrl] = useState("");
   const [notes, setNotes] = useState("");
+  const [syncAdapter, setSyncAdapter] = useState("");
 
   async function save() {
     if (!name) return;
@@ -29,11 +30,11 @@ export default function AddProjectDialog() {
     await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, url: url || null, notes: notes || null }),
+      body: JSON.stringify({ name, type, url: url || null, notes: notes || null, sync_adapter: syncAdapter || null }),
     });
     setSaving(false);
     setOpen(false);
-    setName(""); setType("PERP"); setUrl(""); setNotes("");
+    setName(""); setType("PERP"); setUrl(""); setNotes(""); setSyncAdapter("");
     router.refresh();
   }
 
@@ -65,6 +66,15 @@ export default function AddProjectDialog() {
             <div className="space-y-1">
               <Label>URL (optional)</Label>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
+            </div>
+            <div className="space-y-1">
+              <Label>Auto-sync (optional)</Label>
+              <Select value={syncAdapter} onValueChange={setSyncAdapter}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hyperliquid">Hyperliquid</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Notes (optional)</Label>

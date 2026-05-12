@@ -11,16 +11,15 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   if (!wallet) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
-    const [portfolio, positions] = await Promise.all([
-      fetchPortfolio(wallet.address),
-      fetchPositions(wallet.address),
-    ]);
+    const portfolio = await fetchPortfolio(wallet.address);
+    const positions = await fetchPositions(wallet.address);
     const totalUsd = portfolio.data.attributes.total.positions;
     const payload = JSON.stringify({ portfolio, positions });
     upsertBalanceCache(id, totalUsd, payload);
     return NextResponse.json({ total_usd: totalUsd });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Zerion error";
+    console.error("[sync]", msg);
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

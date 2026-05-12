@@ -12,5 +12,7 @@ export function getDb(): Database.Database {
   _db = new Database(DB_PATH);
   const schema = fs.readFileSync(SCHEMA_PATH, "utf-8");
   _db.exec(schema);
+  try { _db.exec(`ALTER TABLE project ADD COLUMN sync_adapter TEXT`); } catch {}
+  try { _db.exec(`ALTER TABLE wallet_project ADD COLUMN pnl_usd REAL`); } catch {}
   return _db;
 }

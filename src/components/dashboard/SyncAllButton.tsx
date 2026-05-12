@@ -15,11 +15,9 @@ export default function SyncAllButton({ wallets }: Props) {
 
   async function syncAll() {
     setLoading(true);
-    await Promise.allSettled(
-      wallets.map((w) =>
-        fetch(`/api/wallets/${w.id}/sync`, { method: "POST" })
-      )
-    );
+    for (const w of wallets) {
+      await fetch(`/api/wallets/${w.id}/sync`, { method: "POST" });
+    }
     setLoading(false);
     router.refresh();
   }

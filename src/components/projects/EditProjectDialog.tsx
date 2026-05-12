@@ -23,13 +23,14 @@ export default function EditProjectDialog({ project }: { project: Project }) {
   const [type, setType] = useState(project.type);
   const [url, setUrl] = useState(project.url ?? "");
   const [notes, setNotes] = useState(project.notes ?? "");
+  const [syncAdapter, setSyncAdapter] = useState(project.sync_adapter ?? "");
 
   async function save() {
     setSaving(true);
     await fetch(`/api/projects/${project.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, url: url || null, notes: notes || null }),
+      body: JSON.stringify({ name, type, url: url || null, notes: notes || null, sync_adapter: syncAdapter || null }),
     });
     setSaving(false);
     setOpen(false);
@@ -69,6 +70,15 @@ export default function EditProjectDialog({ project }: { project: Project }) {
             <div className="space-y-1">
               <Label>URL</Label>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Auto-sync</Label>
+              <Select value={syncAdapter} onValueChange={setSyncAdapter}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hyperliquid">Hyperliquid</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Notes</Label>

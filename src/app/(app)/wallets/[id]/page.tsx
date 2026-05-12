@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import WalletActions from "@/components/wallet/WalletActions";
 import FarmingEntryDialog from "@/components/projects/FarmingEntryDialog";
+import SyncEntryButton from "@/components/wallet/SyncEntryButton";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -129,6 +130,7 @@ export default async function WalletPage({ params }: Props) {
                   <TableHead className="text-right">APR</TableHead>
                   <TableHead className="text-right">Cost</TableHead>
                   <TableHead className="text-right">Points</TableHead>
+                  <TableHead className="text-right">PnL</TableHead>
                   <TableHead className="text-right">$/point</TableHead>
                   <TableHead className="text-right">$/$1M vol</TableHead>
                   <TableHead />
@@ -148,9 +150,13 @@ export default async function WalletPage({ params }: Props) {
                       <TableCell className="text-right">{fmtPercent(e.current_apr)}</TableCell>
                       <TableCell className="text-right">{fmtUsd(cost)}</TableCell>
                       <TableCell className="text-right">{fmtNumber(e.points, 0)}</TableCell>
+                      <TableCell className={`text-right ${e.pnl_usd != null ? (e.pnl_usd >= 0 ? "text-green-600" : "text-red-500") : ""}`}>
+                        {fmtUsd(e.pnl_usd)}
+                      </TableCell>
                       <TableCell className="text-right">{fmtUsd(costPerPoint(e.gas_usd, e.fees_usd, e.points))}</TableCell>
                       <TableCell className="text-right">{fmtUsd(costPerMVolume(e.gas_usd, e.fees_usd, e.volume_usd))}</TableCell>
-                      <TableCell>
+                      <TableCell className="flex items-center gap-1">
+                        {e.project_sync_adapter && <SyncEntryButton entryId={e.id} />}
                         <FarmingEntryDialog
                           walletId={id}
                           projects={allProjects}

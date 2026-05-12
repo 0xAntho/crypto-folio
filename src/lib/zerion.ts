@@ -11,7 +11,10 @@ async function zerionGet<T>(path: string): Promise<T> {
     headers: { Authorization: authHeader(), accept: "application/json" },
     next: { revalidate: 0 },
   });
-  if (!res.ok) throw new Error(`Zerion ${res.status}: ${path}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Zerion ${res.status} on ${path}: ${body}`);
+  }
   return res.json() as Promise<T>;
 }
 

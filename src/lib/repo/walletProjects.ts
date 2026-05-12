@@ -10,6 +10,7 @@ export interface WalletProject {
   current_apr: number | null;
   gas_usd: number | null;
   points: number | null;
+  pnl_usd: number | null;
   custom_fields: string;
   updated_at: number;
 }
@@ -17,6 +18,7 @@ export interface WalletProject {
 export interface WalletProjectWithNames extends WalletProject {
   project_name: string;
   project_type: string;
+  project_sync_adapter: string | null;
   wallet_label: string;
   wallet_address: string;
 }
@@ -25,6 +27,7 @@ export function listByWallet(walletId: string): WalletProjectWithNames[] {
   return getDb()
     .prepare(
       `SELECT wp.*, p.name AS project_name, p.type AS project_type,
+              p.sync_adapter AS project_sync_adapter,
               w.label AS wallet_label, w.address AS wallet_address
        FROM wallet_project wp
        JOIN project p ON p.id = wp.project_id
@@ -39,6 +42,7 @@ export function listByProject(projectId: string): WalletProjectWithNames[] {
   return getDb()
     .prepare(
       `SELECT wp.*, p.name AS project_name, p.type AS project_type,
+              p.sync_adapter AS project_sync_adapter,
               w.label AS wallet_label, w.address AS wallet_address
        FROM wallet_project wp
        JOIN project p ON p.id = wp.project_id
@@ -53,6 +57,7 @@ export function listAll(): WalletProjectWithNames[] {
   return getDb()
     .prepare(
       `SELECT wp.*, p.name AS project_name, p.type AS project_type,
+              p.sync_adapter AS project_sync_adapter,
               w.label AS wallet_label, w.address AS wallet_address
        FROM wallet_project wp
        JOIN project p ON p.id = wp.project_id
@@ -75,8 +80,8 @@ export function upsertWalletProject(
   db.prepare(
     `INSERT INTO wallet_project
        (id, wallet_id, project_id, volume_usd, fees_usd, initial_liq_usd,
-        current_apr, gas_usd, points, custom_fields, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        current_apr, gas_usd, points, pnl_usd, custom_fields, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(wallet_id, project_id) DO UPDATE SET
        volume_usd      = excluded.volume_usd,
        fees_usd        = excluded.fees_usd,
@@ -84,6 +89,7 @@ export function upsertWalletProject(
        current_apr     = excluded.current_apr,
        gas_usd         = excluded.gas_usd,
        points          = excluded.points,
+       pnl_usd         = excluded.pnl_usd,
        custom_fields   = excluded.custom_fields,
        updated_at      = excluded.updated_at`
   ).run(
@@ -96,6 +102,7 @@ export function upsertWalletProject(
     entry.current_apr,
     entry.gas_usd,
     entry.points,
+    entry.pnl_usd,
     entry.custom_fields,
     Date.now()
   );
