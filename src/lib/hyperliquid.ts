@@ -20,6 +20,7 @@ interface Fill {
   px: string;
   sz: string;
   closedPnl: string;
+  fee: string;
   time: number;
 }
 
@@ -44,6 +45,7 @@ async function fetchAllFills(address: string): Promise<Fill[]> {
 export interface HyperliquidStats {
   volume_usd: number;
   pnl_usd: number;
+  fees_usd: number;
 }
 
 export async function fetchWalletStats(address: string, hlDex?: string | null): Promise<HyperliquidStats> {
@@ -57,14 +59,19 @@ export async function fetchWalletStats(address: string, hlDex?: string | null): 
     }
     const volume_usd = relevant.reduce((s, f) => s + parseFloat(f.sz) * parseFloat(f.px), 0);
     const pnl_usd = relevant.reduce((s, f) => s + parseFloat(f.closedPnl), 0);
-    console.log(`[hl sync] volume_usd=${volume_usd}, pnl_usd=${pnl_usd}`);
-    return { volume_usd, pnl_usd };
+    const fees_usd = relevant.reduce((s, f) => s + parseFloat(f.fee), 0);
+    console.log(`[hl sync] volume_usd=${volume_usd}, pnl_usd=${pnl_usd}, fees_usd=${fees_usd}`);
+    return { volume_usd, pnl_usd, fees_usd };
   }
 
   type PeriodData = { vlm: string; pnlHistory: [number, number][] };
   type Portfolio = [string, PeriodData][];
 
-  const portfolio = await hlPost<Portfolio>({ type: "portfolio", user: address });
+  const [portfolio, fills] = await Promise.all([
+    hlPost<Portfolio>({ type: "portfolio", user: address }),
+    fetchAllFills(address),
+  ]);
+
   const perpAllTime = portfolio.find(([k]) => k === "perpAllTime")?.[1];
   if (!perpAllTime) throw new Error("No perpAllTime data returned");
 
@@ -73,6 +80,7 @@ export async function fetchWalletStats(address: string, hlDex?: string | null): 
     perpAllTime.pnlHistory.length > 0
       ? perpAllTime.pnlHistory[perpAllTime.pnlHistory.length - 1][1]
       : 0;
+  const fees_usd = fills.reduce((s, f) => s + parseFloat(f.fee), 0);
 
-  return { volume_usd, pnl_usd };
+  return { volume_usd, pnl_usd, fees_usd };
 }

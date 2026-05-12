@@ -19,7 +19,7 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   const entries = listByProject(id);
   const agg = aggregateEntries(entries);
-  const totalCostVal = totalCost(agg.gas_usd, agg.fees_usd);
+  const totalCostVal = totalCost(agg.gas_usd, agg.fees_usd, agg.pnl_usd);
 
   return (
     <div className="space-y-8">
@@ -47,9 +47,9 @@ export default async function ProjectDetailPage({ params }: Props) {
         )}
         <KpiCard label="Total cost" value={fmtUsd(totalCostVal)} />
         <KpiCard label="Total points" value={fmtNumber(agg.points, 0)} />
-        <KpiCard label="$/point" value={fmtUsd(costPerPoint(agg.gas_usd, agg.fees_usd, agg.points))} />
+        <KpiCard label="$/point" value={fmtUsd(costPerPoint(agg.gas_usd, agg.fees_usd, agg.points, agg.pnl_usd))} />
         {project.type === "PERP" && (
-          <KpiCard label="$/$1M vol" value={fmtUsd(costPerMVolume(agg.gas_usd, agg.fees_usd, agg.volume_usd))} />
+          <KpiCard label="$/$1M vol" value={fmtUsd(costPerMVolume(agg.gas_usd, agg.fees_usd, agg.volume_usd, agg.pnl_usd))} />
         )}
       </div>
 
@@ -74,7 +74,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             </TableHeader>
             <TableBody>
               {entries.map((e) => {
-                const cost = totalCost(e.gas_usd, e.fees_usd);
+                const cost = totalCost(e.gas_usd, e.fees_usd, e.pnl_usd);
                 let custom: Record<string, string> = {};
                 try { custom = JSON.parse(e.custom_fields); } catch { /* skip */ }
                 return (
@@ -92,9 +92,9 @@ export default async function ProjectDetailPage({ params }: Props) {
                     <TableCell className="text-right">{fmtUsd(e.gas_usd)}</TableCell>
                     <TableCell className="text-right">{fmtNumber(e.points, 0)}</TableCell>
                     <TableCell className="text-right">{fmtUsd(cost)}</TableCell>
-                    <TableCell className="text-right">{fmtUsd(costPerPoint(e.gas_usd, e.fees_usd, e.points))}</TableCell>
+                    <TableCell className="text-right">{fmtUsd(costPerPoint(e.gas_usd, e.fees_usd, e.points, e.pnl_usd))}</TableCell>
                     {project.type === "PERP" && (
-                      <TableCell className="text-right">{fmtUsd(costPerMVolume(e.gas_usd, e.fees_usd, e.volume_usd))}</TableCell>
+                      <TableCell className="text-right">{fmtUsd(costPerMVolume(e.gas_usd, e.fees_usd, e.volume_usd, e.pnl_usd))}</TableCell>
                     )}
                     <TableCell className="text-xs text-muted-foreground">
                       {Object.entries(custom).map(([k, v]) => `${k}=${v}`).join(", ") || "—"}
@@ -112,9 +112,9 @@ export default async function ProjectDetailPage({ params }: Props) {
                 <TableCell className="text-right">{fmtUsd(agg.gas_usd)}</TableCell>
                 <TableCell className="text-right">{fmtNumber(agg.points, 0)}</TableCell>
                 <TableCell className="text-right">{fmtUsd(totalCostVal)}</TableCell>
-                <TableCell className="text-right">{fmtUsd(costPerPoint(agg.gas_usd, agg.fees_usd, agg.points))}</TableCell>
+                <TableCell className="text-right">{fmtUsd(costPerPoint(agg.gas_usd, agg.fees_usd, agg.points, agg.pnl_usd))}</TableCell>
                 {project.type === "PERP" && (
-                  <TableCell className="text-right">{fmtUsd(costPerMVolume(agg.gas_usd, agg.fees_usd, agg.volume_usd))}</TableCell>
+                  <TableCell className="text-right">{fmtUsd(costPerMVolume(agg.gas_usd, agg.fees_usd, agg.volume_usd, agg.pnl_usd))}</TableCell>
                 )}
                 <TableCell />
               </TableRow>

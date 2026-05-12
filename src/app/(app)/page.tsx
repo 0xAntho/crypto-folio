@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const projects = listProjects();
 
   const totalPortfolioUsd = wallets.reduce((s, w) => s + (w.total_usd ?? 0), 0);
-  const totalFarmingCost = entries.reduce((s, e) => s + totalCost(e.gas_usd, e.fees_usd), 0);
+  const totalFarmingCost = entries.reduce((s, e) => s + totalCost(e.gas_usd, e.fees_usd, e.pnl_usd), 0);
   const totalPoints = entries.reduce((s, e) => s + (e.points ?? 0), 0);
 
   const projectMap = new Map(projects.map((p) => [p.id, p]));
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const rows = Array.from(byProject.entries()).map(([pid, es]) => {
     const proj = projectMap.get(pid);
     const agg = aggregateEntries(es);
-    const cost = totalCost(agg.gas_usd, agg.fees_usd);
+    const cost = totalCost(agg.gas_usd, agg.fees_usd, agg.pnl_usd);
     return {
       id: pid,
       name: proj?.name ?? pid,
@@ -41,8 +41,8 @@ export default function DashboardPage() {
       volume_usd: agg.volume_usd,
       cost_usd: cost,
       points: agg.points,
-      cost_per_point: costPerPoint(agg.gas_usd, agg.fees_usd, agg.points),
-      cost_per_m_vol: costPerMVolume(agg.gas_usd, agg.fees_usd, agg.volume_usd),
+      cost_per_point: costPerPoint(agg.gas_usd, agg.fees_usd, agg.points, agg.pnl_usd),
+      cost_per_m_vol: costPerMVolume(agg.gas_usd, agg.fees_usd, agg.volume_usd, agg.pnl_usd),
       initial_liq_usd: agg.initial_liq_usd,
     };
   });
