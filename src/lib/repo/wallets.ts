@@ -5,6 +5,7 @@ export interface Wallet {
   address: string;
   label: string;
   created_at: number;
+  sort_order: number;
 }
 
 export interface BalanceCache {
@@ -26,7 +27,7 @@ export function listWallets(): WalletWithCache[] {
       `SELECT w.*, bc.total_usd, bc.fetched_at
        FROM wallet w
        LEFT JOIN balance_cache bc ON bc.wallet_id = w.id
-       ORDER BY w.created_at ASC`
+       ORDER BY COALESCE(w.sort_order, w.created_at) ASC`
     )
     .all() as WalletWithCache[];
 }
@@ -50,6 +51,14 @@ export function createWallet(id: string, address: string, label: string): Wallet
     `INSERT INTO wallet (id, address, label, created_at) VALUES (?, ?, ?, ?)`
   ).run(id, address.toLowerCase(), label, now);
   return { id, address: address.toLowerCase(), label, created_at: now };
+}
+
+export function reorderWallets(ids: string[]): void {
+  const db = getDb();
+  const update = db.prepare(`UPDATE wallet SET sort_order = ? WHERE id = ?`);
+  db.transaction(() => {
+    ids.forEach((id, i) => update.run(i, id));
+  })();
 }
 
 export function updateWallet(id: string, label: string): void {

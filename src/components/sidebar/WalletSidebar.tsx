@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Plus, LayoutDashboard, Settings, LogOut, Wallet } from "lucide-react";
+import { Plus, LayoutDashboard, Settings, LogOut, Wallet, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,10 +31,18 @@ export default function WalletSidebar({ wallets: initial }: Props) {
   const [address, setAddress] = useState("");
   const [label, setLabel] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   async function addWallet() {
     if (!address || !label) return;
+    if (wallets.some((w) => w.address === address.toLowerCase())) {
+      setError("This wallet is already added.");
+      return;
+    }
     setSaving(true);
+    setError(null);
     const res = await fetch("/api/wallets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -47,8 +55,46 @@ export default function WalletSidebar({ wallets: initial }: Props) {
       setAddress("");
       setLabel("");
       router.push(`/wallets/${w.id}`);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Failed to add wallet.");
     }
     setSaving(false);
+  }
+
+  function handleDragStart(id: string) {
+    setDraggedId(id);
+  }
+
+  function handleDragOver(e: React.DragEvent, id: string) {
+    e.preventDefault();
+    setDragOverId(id);
+  }
+
+  function handleDrop(targetId: string) {
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const from = wallets.findIndex((w) => w.id === draggedId);
+    const to = wallets.findIndex((w) => w.id === targetId);
+    const next = [...wallets];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    setWallets(next);
+    setDraggedId(null);
+    setDragOverId(null);
+    fetch("/api/wallets", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: next.map((w) => w.id) }),
+    });
+  }
+
+  function handleDragEnd() {
+    setDraggedId(null);
+    setDragOverId(null);
   }
 
   return (
@@ -76,20 +122,35 @@ export default function WalletSidebar({ wallets: initial }: Props) {
 
       <div className="flex-1 overflow-y-auto flex flex-col gap-1 px-2">
         {wallets.map((w) => (
-          <Link
+          <div
             key={w.id}
-            href={`/wallets/${w.id}`}
+            draggable
+            onDragStart={() => handleDragStart(w.id)}
+            onDragOver={(e) => handleDragOver(e, w.id)}
+            onDrop={() => handleDrop(w.id)}
+            onDragEnd={handleDragEnd}
             className={cn(
-              "flex flex-col rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors",
-              pathname === `/wallets/${w.id}` && "bg-accent"
+              "flex items-center gap-1 rounded-md transition-colors",
+              dragOverId === w.id && draggedId !== w.id && "ring-1 ring-ring",
+              draggedId === w.id && "opacity-40"
             )}
           >
-            <span className="font-medium truncate">{w.label}</span>
-            <span className="text-xs text-muted-foreground flex justify-between">
-              <span>{truncateAddress(w.address)}</span>
-              <span>{w.total_usd != null ? fmtUsd(w.total_usd, 0) : "—"}</span>
-            </span>
-          </Link>
+            <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground cursor-grab ml-1" />
+            <Link
+              href={`/wallets/${w.id}`}
+              draggable={false}
+              className={cn(
+                "flex flex-col flex-1 rounded-md px-2 py-2 text-sm hover:bg-accent transition-colors",
+                pathname === `/wallets/${w.id}` && "bg-accent"
+              )}
+            >
+              <span className="font-medium truncate">{w.label}</span>
+              <span className="text-xs text-muted-foreground flex justify-between">
+                <span>{truncateAddress(w.address)}</span>
+                <span>{w.total_usd != null ? fmtUsd(w.total_usd, 0) : "—"}</span>
+              </span>
+            </Link>
+          </div>
         ))}
 
         <Button
@@ -138,7 +199,7 @@ export default function WalletSidebar({ wallets: initial }: Props) {
         </Button>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setError(null); setAddress(""); setLabel(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add wallet</DialogTitle>
@@ -149,8 +210,9 @@ export default function WalletSidebar({ wallets: initial }: Props) {
               <Input
                 placeholder="0x…"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => { setAddress(e.target.value); setError(null); }}
               />
+              {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
             <div className="space-y-1">
               <Label>Label</Label>

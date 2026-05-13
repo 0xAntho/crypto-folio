@@ -15,5 +15,7 @@ export function getDb(): Database.Database {
   try { _db.exec(`ALTER TABLE project ADD COLUMN sync_adapter TEXT`); } catch {}
   try { _db.exec(`ALTER TABLE project ADD COLUMN hl_dex TEXT`); } catch {}
   try { _db.exec(`ALTER TABLE wallet_project ADD COLUMN pnl_usd REAL`); } catch {}
+  try { _db.exec(`ALTER TABLE wallet ADD COLUMN sort_order INTEGER`); } catch {}
+  _db.exec(`UPDATE wallet SET sort_order = created_at WHERE sort_order IS NULL`);
   return _db;
 }

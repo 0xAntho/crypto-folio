@@ -77,7 +77,7 @@ export default async function WalletPage({ params }: Props) {
               <p className="text-xs text-muted-foreground">Synced {timeAgo(cache.fetched_at)}</p>
             )}
           </div>
-          <WalletActions walletId={id} address={wallet.address} />
+          <WalletActions walletId={id} address={wallet.address} label={wallet.label} />
         </div>
       </div>
 
