@@ -74,6 +74,7 @@ export default function AddProjectDialog() {
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hyperliquid">Hyperliquid</SelectItem>
+                  <SelectItem value="extended">Extended</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -4,6 +4,7 @@ import { getWalletProject, upsertWalletProject } from "@/lib/repo/walletProjects
 import { getProject } from "@/lib/repo/projects";
 import { getWallet } from "@/lib/repo/wallets";
 import { fetchWalletStats } from "@/lib/hyperliquid";
+import { fetchExtendedStats } from "@/lib/extended";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -23,6 +24,9 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   try {
     if (project.sync_adapter === "hyperliquid") {
       const stats = await fetchWalletStats(wallet.address, project.hl_dex);
+      upsertWalletProject({ ...entry, volume_usd: stats.volume_usd, pnl_usd: stats.pnl_usd, fees_usd: stats.fees_usd });
+    } else if (project.sync_adapter === "extended") {
+      const stats = await fetchExtendedStats();
       upsertWalletProject({ ...entry, volume_usd: stats.volume_usd, pnl_usd: stats.pnl_usd, fees_usd: stats.fees_usd });
     }
     return NextResponse.json({ ok: true });

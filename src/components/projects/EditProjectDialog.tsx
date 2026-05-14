@@ -78,6 +78,7 @@ export default function EditProjectDialog({ project }: { project: Project }) {
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hyperliquid">Hyperliquid</SelectItem>
+                  <SelectItem value="extended">Extended</SelectItem>
                 </SelectContent>
               </Select>
             </div>

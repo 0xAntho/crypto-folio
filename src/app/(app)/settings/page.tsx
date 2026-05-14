@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 export default function SettingsPage() {
   const [zerionKey, setZerionKey] = useState("");
   const [keySaved, setKeySaved] = useState(false);
+  const [extKey, setExtKey] = useState("");
+  const [extKeySaved, setExtKeySaved] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [pwMsg, setPwMsg] = useState("");
@@ -22,6 +24,16 @@ export default function SettingsPage() {
     });
     setKeySaved(true);
     setTimeout(() => setKeySaved(false), 2000);
+  }
+
+  async function saveExtKey() {
+    await fetch("/api/settings/extended-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: extKey }),
+    });
+    setExtKeySaved(true);
+    setTimeout(() => setExtKeySaved(false), 2000);
   }
 
   async function changePassword() {
@@ -60,6 +72,26 @@ export default function SettingsPage() {
           />
           <Button variant="outline" onClick={saveKey} disabled={!zerionKey}>
             {keySaved ? "Saved!" : "Save"}
+          </Button>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium">Extended API key</h2>
+        <p className="text-sm text-muted-foreground">
+          Required for syncing Extended perp stats. Set <code>EXTENDED_API_KEY</code> in <code>.env.local</code>, or use this form to update it at runtime (requires restart to persist).
+        </p>
+        <div className="flex gap-2">
+          <Input
+            type="password"
+            placeholder="API key…"
+            value={extKey}
+            onChange={(e) => setExtKey(e.target.value)}
+          />
+          <Button variant="outline" onClick={saveExtKey} disabled={!extKey}>
+            {extKeySaved ? "Saved!" : "Save"}
           </Button>
         </div>
       </div>
