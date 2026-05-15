@@ -54,7 +54,7 @@ export default function WalletSidebar({ wallets: initial }: Props) {
       setOpen(false);
       setAddress("");
       setLabel("");
-      router.push(`/wallets/${w.id}`);
+      router.push(`/wallets/${w.address}`);
     } else {
       const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Failed to add wallet.");
@@ -137,11 +137,11 @@ export default function WalletSidebar({ wallets: initial }: Props) {
           >
             <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground cursor-grab ml-1" />
             <Link
-              href={`/wallets/${w.id}`}
+              href={`/wallets/${w.address}`}
               draggable={false}
               className={cn(
                 "flex flex-col flex-1 rounded-md px-2 py-2 text-sm hover:bg-accent transition-colors",
-                pathname === `/wallets/${w.id}` && "bg-accent"
+                pathname === `/wallets/${w.address}` && "bg-accent"
               )}
             >
               <span className="font-medium truncate">{w.label}</span>

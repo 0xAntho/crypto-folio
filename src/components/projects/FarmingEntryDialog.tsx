@@ -124,7 +124,7 @@ export default function FarmingEntryDialog({ walletId, projects, existingIds, ed
               <div className="space-y-1">
                 <Label>Project</Label>
                 <Select value={projectId} onValueChange={(v) => v && setProjectId(v)}>
-                  <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select project">{availableProjects.find(p => p.id === projectId)?.name}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {availableProjects.map((p) => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>

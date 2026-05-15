@@ -80,7 +80,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                 return (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
-                      <a href={`/wallets/${e.wallet_id}`} className="hover:underline">{e.wallet_label}</a>
+                      <a href={`/wallets/${e.wallet_address}`} className="hover:underline">{e.wallet_label}</a>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {truncateAddress(e.wallet_address)}

@@ -44,6 +44,18 @@ export function getWallet(id: string): WalletWithCache | undefined {
     .get(id) as WalletWithCache | undefined;
 }
 
+export function getWalletByAddress(address: string): WalletWithCache | undefined {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT w.*, bc.total_usd, bc.fetched_at
+       FROM wallet w
+       LEFT JOIN balance_cache bc ON bc.wallet_id = w.id
+       WHERE w.address = ?`
+    )
+    .get(address.toLowerCase()) as WalletWithCache | undefined;
+}
+
 export function createWallet(id: string, address: string, label: string): Wallet {
   const db = getDb();
   const now = Date.now();

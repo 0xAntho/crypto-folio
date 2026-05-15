@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getWallet, getBalanceCache } from "@/lib/repo/wallets";
+import { getWalletByAddress, getBalanceCache } from "@/lib/repo/wallets";
 import { listByWallet } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
 import { fmtUsd, fmtNumber, fmtPercent, timeAgo } from "@/lib/format";
@@ -14,16 +14,16 @@ import SyncEntryButton from "@/components/wallet/SyncEntryButton";
 import HoldingsList from "@/components/wallet/HoldingsList";
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ address: string }>;
 }
 
 export default async function WalletPage({ params }: Props) {
-  const { id } = await params;
-  const wallet = getWallet(id);
+  const { address } = await params;
+  const wallet = getWalletByAddress(address);
   if (!wallet) notFound();
 
-  const cache = getBalanceCache(id);
-  const entries = listByWallet(id);
+  const cache = getBalanceCache(wallet.id);
+  const entries = listByWallet(wallet.id);
   const allProjects = listProjects();
 
   let positions: Array<{
@@ -77,7 +77,7 @@ export default async function WalletPage({ params }: Props) {
               <p className="text-xs text-muted-foreground">Synced {timeAgo(cache.fetched_at)}</p>
             )}
           </div>
-          <WalletActions walletId={id} address={wallet.address} label={wallet.label} />
+          <WalletActions walletId={wallet.id} address={wallet.address} label={wallet.label} />
         </div>
       </div>
 
@@ -93,7 +93,7 @@ export default async function WalletPage({ params }: Props) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">Farming</h2>
-          <FarmingEntryDialog walletId={id} projects={allProjects} existingIds={entries.map(e => e.project_id)} />
+          <FarmingEntryDialog walletId={wallet.id} projects={allProjects} existingIds={entries.map(e => e.project_id)} />
         </div>
         {entries.length > 0 ? (
           <div className="rounded-md border">
@@ -137,7 +137,7 @@ export default async function WalletPage({ params }: Props) {
                       <TableCell className="flex items-center gap-1">
                         {e.project_sync_adapter && <SyncEntryButton entryId={e.id} />}
                         <FarmingEntryDialog
-                          walletId={id}
+                          walletId={wallet.id}
                           projects={allProjects}
                           existingIds={[]}
                           editEntry={e}
