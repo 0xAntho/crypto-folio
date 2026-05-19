@@ -50,3 +50,9 @@ CREATE TABLE IF NOT EXISTS wallet_project (
 
 CREATE INDEX IF NOT EXISTS idx_wp_wallet  ON wallet_project(wallet_id);
 CREATE INDEX IF NOT EXISTS idx_wp_project ON wallet_project(project_id);
+
+CREATE TABLE IF NOT EXISTS portfolio_history (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  total_usd   REAL NOT NULL,
+  recorded_at INTEGER NOT NULL
+);

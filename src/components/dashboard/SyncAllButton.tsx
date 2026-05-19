@@ -82,6 +82,8 @@ export default function SyncAllButton({ wallets }: Props) {
       losers: deltas.filter((d) => d.delta < 0).slice(-3).reverse(),
     });
 
+    await fetch("/api/portfolio/snapshot", { method: "POST" });
+
     setLoading(false);
     router.refresh();
   }

@@ -1,6 +1,7 @@
 import { listWallets, listPositionsByWallet } from "@/lib/repo/wallets";
 import { listAll } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
+import { listHistory } from "@/lib/repo/portfolio";
 import { aggregateEntries, costPerPoint, costPerMVolume, totalCost } from "@/lib/metrics";
 import { fmtUsd, fmtNumber } from "@/lib/format";
 import {
@@ -14,6 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import SyncAllButton from "@/components/dashboard/SyncAllButton";
 import AssetPieChart, { type AssetSlice } from "@/components/dashboard/AssetPieChart";
+import FarmingCostChart, { type ProjectCostSlice } from "@/components/dashboard/FarmingCostChart";
+import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import type { ZerionPosition, ZerionPositionsResponse } from "@/lib/zerion";
 
 export default function DashboardPage() {
@@ -21,6 +24,7 @@ export default function DashboardPage() {
   const entries = listAll();
   const projects = listProjects();
   const payloads = listPositionsByWallet();
+  const history = listHistory();
 
   const totalPortfolioUsd = wallets.reduce((s, w) => s + (w.total_usd ?? 0), 0);
   const totalFarmingCost = entries.reduce((s, e) => s + totalCost(e.gas_usd, e.fees_usd, e.pnl_usd), 0);
@@ -89,12 +93,22 @@ export default function DashboardPage() {
       type: proj?.type ?? "OTHER",
       volume_usd: agg.volume_usd,
       cost_usd: cost,
+      fees_usd: agg.fees_usd,
+      gas_usd: agg.gas_usd,
+      pnl_usd: agg.pnl_usd,
       points: agg.points,
       cost_per_point: costPerPoint(agg.gas_usd, agg.fees_usd, agg.points, agg.pnl_usd),
       cost_per_m_vol: costPerMVolume(agg.gas_usd, agg.fees_usd, agg.volume_usd, agg.pnl_usd),
       initial_liq_usd: agg.initial_liq_usd,
     };
   });
+
+  const farmingCostSlices: ProjectCostSlice[] = rows.map((r) => ({
+    name: r.name,
+    fees: r.fees_usd,
+    gas: r.gas_usd,
+    pnl: r.pnl_usd,
+  }));
 
   return (
     <div className="space-y-8">
@@ -110,7 +124,12 @@ export default function DashboardPage() {
         <KpiCard label="Total points" value={fmtNumber(totalPoints, 0)} />
       </div>
 
-      <AssetPieChart slices={pieSlices} />
+      <div className="grid grid-cols-2 gap-4">
+        <AssetPieChart slices={pieSlices} />
+        <FarmingCostChart data={farmingCostSlices} />
+      </div>
+
+      <PortfolioChart data={history} />
 
       {rows.length > 0 && (
         <div className="space-y-3">

@@ -19,9 +19,7 @@ export default function AssetPieChart({ slices }: Props) {
   if (slices.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-lg font-medium">Asset allocation</h2>
-      <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-xl border bg-card p-4">
         <ResponsiveContainer width="100%" height={280}>
           <PieChart>
             <Pie data={slices} dataKey="value" nameKey="symbol" cx="50%" cy="50%" outerRadius={100} innerRadius={60}>
@@ -33,10 +31,9 @@ export default function AssetPieChart({ slices }: Props) {
               formatter={(value, name) => [fmtUsd(typeof value === "number" ? value : null), name]}
               contentStyle={{ fontSize: 13 }}
             />
-            <Legend formatter={(value, entry) => `${value} ${(entry.payload as AssetSlice).pct.toFixed(1)}%`} />
+            <Legend layout="vertical" align="right" verticalAlign="middle" formatter={(value, entry) => `${value} ${(entry.payload as AssetSlice).pct.toFixed(1)}%`} />
           </PieChart>
         </ResponsiveContainer>
-      </div>
     </div>
   );
 }
