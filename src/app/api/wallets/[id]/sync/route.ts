@@ -16,7 +16,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     const totalUsd = portfolio.data.attributes.total.positions;
     const payload = JSON.stringify({ portfolio, positions });
     upsertBalanceCache(id, totalUsd, payload);
-    return NextResponse.json({ total_usd: totalUsd });
+    return NextResponse.json({ total_usd: totalUsd, positions: positions.data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Zerion error";
     console.error("[sync]", msg);

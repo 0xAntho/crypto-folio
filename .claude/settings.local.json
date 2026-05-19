@@ -11,7 +11,13 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\antoi\\\\projets\\\\crypto-folio\\\\src\" -Recurse -Filter \"*wallet*\")",
       "Bash(Select-Object -First 20)",
       "WebFetch(domain:api.docs.extended.exchange)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "WebFetch(domain:www.prjx.com)",
+      "WebFetch(domain:dune.com)",
+      "WebFetch(domain:dexrank.com)",
+      "WebFetch(domain:prjxdocs.notion.site)",
+      "WebFetch(domain:meme-insider.com)",
+      "Bash(npx tsc *)"
     ]
   }
 }

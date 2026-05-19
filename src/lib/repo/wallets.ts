@@ -104,3 +104,9 @@ export function getBalanceCache(walletId: string): BalanceCache | undefined {
     .prepare(`SELECT * FROM balance_cache WHERE wallet_id = ?`)
     .get(walletId) as BalanceCache | undefined;
 }
+
+export function listPositionsByWallet(): { wallet_id: string; payload: string | null }[] {
+  return getDb()
+    .prepare(`SELECT wallet_id, payload FROM balance_cache`)
+    .all() as { wallet_id: string; payload: string | null }[];
+}

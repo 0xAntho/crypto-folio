@@ -1,4 +1,4 @@
-import { listWallets } from "@/lib/repo/wallets";
+import { listWallets, listPositionsByWallet } from "@/lib/repo/wallets";
 import { listAll } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
 import { aggregateEntries, costPerPoint, costPerMVolume, totalCost } from "@/lib/metrics";
@@ -13,15 +13,64 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import SyncAllButton from "@/components/dashboard/SyncAllButton";
+import AssetPieChart, { type AssetSlice } from "@/components/dashboard/AssetPieChart";
+import type { ZerionPosition, ZerionPositionsResponse } from "@/lib/zerion";
 
 export default function DashboardPage() {
   const wallets = listWallets();
   const entries = listAll();
   const projects = listProjects();
+  const payloads = listPositionsByWallet();
 
   const totalPortfolioUsd = wallets.reduce((s, w) => s + (w.total_usd ?? 0), 0);
   const totalFarmingCost = entries.reduce((s, e) => s + totalCost(e.gas_usd, e.fees_usd, e.pnl_usd), 0);
   const totalPoints = entries.reduce((s, e) => s + (e.points ?? 0), 0);
+
+  // Build per-wallet positions map for sync snapshot
+  const positionsByWalletId = new Map<string, ZerionPosition[]>();
+  for (const row of payloads) {
+    if (!row.payload) continue;
+    try {
+      const parsed = JSON.parse(row.payload) as { positions: ZerionPositionsResponse };
+      positionsByWalletId.set(row.wallet_id, parsed.positions.data ?? []);
+    } catch {
+      // malformed cache entry — skip
+    }
+  }
+
+  // Aggregate positions across all wallets for pie chart
+  const bySymbol = new Map<string, { value: number }>();
+  for (const positions of positionsByWalletId.values()) {
+    for (const pos of positions) {
+      const symbol = pos.attributes.fungible_info.symbol;
+      const value = pos.attributes.value ?? 0;
+      if (value <= 0) continue;
+      const existing = bySymbol.get(symbol);
+      if (existing) existing.value += value;
+      else bySymbol.set(symbol, { value });
+    }
+  }
+
+  const sorted = Array.from(bySymbol.entries())
+    .map(([symbol, { value }]) => ({ symbol, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const TOP_N = 6;
+  const top = sorted.slice(0, TOP_N);
+  const othersValue = sorted.slice(TOP_N).reduce((s, t) => s + t.value, 0);
+  const total = sorted.reduce((s, t) => s + t.value, 0);
+
+  const pieSlices: AssetSlice[] = [
+    ...top.map((t) => ({ symbol: t.symbol, value: t.value, pct: total > 0 ? (t.value / total) * 100 : 0 })),
+    ...(othersValue > 0 ? [{ symbol: "Others", value: othersValue, pct: total > 0 ? (othersValue / total) * 100 : 0 }] : []),
+  ];
+
+  const walletSnapshots = wallets.map((w) => ({
+    id: w.id,
+    label: w.label,
+    totalUsd: w.total_usd ?? 0,
+    positions: positionsByWalletId.get(w.id) ?? [],
+  }));
 
   const projectMap = new Map(projects.map((p) => [p.id, p]));
   const byProject = new Map<string, typeof entries>();
@@ -51,7 +100,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <SyncAllButton wallets={wallets.map((w) => ({ id: w.id, label: w.label }))} />
+        <SyncAllButton wallets={walletSnapshots} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -60,6 +109,8 @@ export default function DashboardPage() {
         <KpiCard label="Farm spend" value={fmtUsd(totalFarmingCost)} />
         <KpiCard label="Total points" value={fmtNumber(totalPoints, 0)} />
       </div>
+
+      <AssetPieChart slices={pieSlices} />
 
       {rows.length > 0 && (
         <div className="space-y-3">
