@@ -18,7 +18,11 @@
       "WebFetch(domain:prjxdocs.notion.site)",
       "WebFetch(domain:meme-insider.com)",
       "Bash(npx tsc *)",
-      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)"
+      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)",
+      "Bash(npm audit *)",
+      "Bash(dir \"C:\\\\Users\\\\antoi\\\\projets\\\\crypto-folio\\\\src\")",
+      "Bash(Get-ChildItem C:\\\\Users\\\\antoi\\\\projets\\\\crypto-folio *)",
+      "Bash(Remove-Item *)"
     ]
   }
 }

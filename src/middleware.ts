@@ -3,7 +3,7 @@ import { authConfig } from "@/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-export const proxy = auth;
+export default auth;
 
 export const config = {
   matcher: ["/((?!login|api/auth|_next|favicon.ico).*)"],
