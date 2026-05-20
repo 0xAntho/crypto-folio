@@ -15,6 +15,7 @@ interface Props {
 }
 
 const DASH = "3 3";
+const TICK_STYLE = { fontSize: 12 };
 
 
 export default function FarmingCostChart({ data }: Props) {
@@ -40,8 +41,8 @@ export default function FarmingCostChart({ data }: Props) {
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={sorted}>
           <CartesianGrid strokeDasharray={DASH} stroke="currentColor" strokeOpacity={0.1} />
-          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-          <YAxis tickFormatter={formatY} tick={{ fontSize: 12 }} width={70} />
+          <XAxis dataKey="name" tick={TICK_STYLE} />
+          <YAxis tickFormatter={formatY} tick={TICK_STYLE} width={70} />
           <Tooltip formatter={formatTooltip} />
           <Legend />
           <Bar dataKey="fees" name="Fees" stackId="a" fill="#f43f5e" />

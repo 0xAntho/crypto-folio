@@ -20,6 +20,7 @@ const PAD_BOTTOM = 30;
 const INNER_W = W - PAD_LEFT - PAD_RIGHT;
 const INNER_H = H - PAD_TOP - PAD_BOTTOM;
 const GRID_DASH = "4 4";
+const VIEW_BOX = "0 0 " + W + " " + H;
 
 export default function PortfolioChart(props: Props) {
   const { data } = props;
@@ -50,7 +51,7 @@ export default function PortfolioChart(props: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-4">
-      <svg viewBox={"0 0 " + W + " " + H} className="w-full" style={{ height: 200 }}>
+      <svg viewBox={VIEW_BOX} className="w-full" style={{ height: 200 }}>
         {yTicks.map((t) => {
           const v = minVal + t * range;
           const y = toY(v);
