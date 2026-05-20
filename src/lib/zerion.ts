@@ -28,6 +28,14 @@ export interface ZerionPortfolio {
     attributes: {
       total: { positions: number };
       changes: { percent_1d: number | null };
+      positions_distribution_by_type: {
+        wallet: number;
+        deposited: number;
+        borrowed: number;
+        locked: number;
+        staked: number;
+      };
+      positions_distribution_by_chain: Record<string, number>;
     };
   };
 }
@@ -62,6 +70,31 @@ export async function fetchPortfolio(address: string): Promise<ZerionPortfolio> 
 export async function fetchPositions(address: string): Promise<ZerionPositionsResponse> {
   return zerionGet<ZerionPositionsResponse>(
     `/wallets/${address}/positions/?filter[position_types]=wallet&currency=usd&sort=value`
+  );
+}
+
+export interface ZerionDefiPosition {
+  id: string;
+  attributes: {
+    position_type: "deposit" | "loan" | "staked" | "locked" | "reward" | "investment";
+    value: number | null;
+    quantity: { float: number };
+    price: number | null;
+    fungible_info: { name: string; symbol: string };
+    application_metadata: { name: string; icon: { url: string } | null } | null;
+  };
+  relationships: {
+    chain: { data: { id: string } };
+  };
+}
+
+export interface ZerionDefiPositionsResponse {
+  data: ZerionDefiPosition[];
+}
+
+export async function fetchDefiPositions(address: string): Promise<ZerionDefiPositionsResponse> {
+  return zerionGet<ZerionDefiPositionsResponse>(
+    `/wallets/${address}/positions/?filter[positions]=only_complex&currency=usd&sort=-value`
   );
 }
 

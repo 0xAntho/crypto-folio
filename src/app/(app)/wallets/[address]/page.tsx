@@ -12,9 +12,22 @@ import WalletActions from "@/components/wallet/WalletActions";
 import FarmingEntryDialog from "@/components/projects/FarmingEntryDialog";
 import SyncEntryButton from "@/components/wallet/SyncEntryButton";
 import HoldingsList from "@/components/wallet/HoldingsList";
+import DefiPositionsList from "@/components/wallet/DefiPositionsList";
 
 interface Props {
   params: Promise<{ address: string }>;
+}
+
+interface RawDefiPos {
+  attributes: {
+    position_type: "deposit" | "loan" | "staked" | "locked" | "reward" | "investment";
+    value: number | null;
+    quantity: { float: number };
+    price: number | null;
+    fungible_info: { name: string; symbol: string };
+    application_metadata: { name: string } | null;
+  };
+  relationships: { chain: { data: { id: string } } };
 }
 
 export default async function WalletPage({ params }: Props) {
@@ -29,6 +42,13 @@ export default async function WalletPage({ params }: Props) {
   let positions: Array<{
     name: string; symbol: string; qty: number; value: number | null;
     price: number | null; change1d: number | null; change1d_usd: number | null; chain: string;
+  }> = [];
+
+  let chainByValue: [string, number][] = [];
+
+  let defiPositions: Array<{
+    protocol: string; symbol: string; type: string; chain: string;
+    qty: number; value: number | null; price: number | null;
   }> = [];
 
   if (cache) {
@@ -58,6 +78,30 @@ export default async function WalletPage({ params }: Props) {
           chain: p.relationships.chain.data.id,
         };
       });
+
+      const rawDefi = (parsed.defiPositions?.data ?? []) as RawDefiPos[];
+      defiPositions = rawDefi.map((p) => ({
+        protocol: p.attributes.application_metadata?.name ?? "Unknown",
+        symbol: p.attributes.fungible_info.symbol,
+        type: p.attributes.position_type,
+        chain: p.relationships.chain.data.id,
+        qty: p.attributes.quantity.float,
+        value: p.attributes.value,
+        price: p.attributes.price,
+      })).filter((p) => (p.value ?? 0) > 1)
+        .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+
+      const chainMap = new Map<string, number>();
+      for (const p of positions) {
+        chainMap.set(p.chain, (chainMap.get(p.chain) ?? 0) + (p.value ?? 0));
+      }
+      for (const p of defiPositions) {
+        const v = p.type === "loan" ? -(p.value ?? 0) : (p.value ?? 0);
+        chainMap.set(p.chain, (chainMap.get(p.chain) ?? 0) + v);
+      }
+      chainByValue = Array.from(chainMap)
+        .filter(([, v]) => v >= 50)
+        .sort((a, b) => b[1] - a[1]);
     } catch {
       // malformed cache, ignore
     }
@@ -85,7 +129,15 @@ export default async function WalletPage({ params }: Props) {
       {positions.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-medium">Holdings</h2>
-          <HoldingsList positions={positions} />
+          <HoldingsList positions={positions} chainBreakdown={chainByValue} />
+        </div>
+      )}
+
+      {/* DeFi Positions */}
+      {defiPositions.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-medium">DeFi Positions</h2>
+          <DefiPositionsList positions={defiPositions} />
         </div>
       )}
 
@@ -156,6 +208,7 @@ export default async function WalletPage({ params }: Props) {
     </div>
   );
 }
+
 
 function typeColor(type: string) {
   if (type === "PERP") return "border-blue-400/40 bg-blue-400/10 text-blue-500";

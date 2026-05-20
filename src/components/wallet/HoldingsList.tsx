@@ -18,14 +18,49 @@ interface Position {
 
 const PAGE_SIZE = 5;
 
-export default function HoldingsList({ positions }: { positions: Position[] }) {
+export default function HoldingsList({ positions, chainBreakdown }: { positions: Position[]; chainBreakdown?: [string, number][] }) {
   const [showAll, setShowAll] = useState(false);
-  const above1k = positions.filter((p) => (p.value ?? 0) >= 1000);
-  const visible = showAll ? positions : above1k.slice(0, PAGE_SIZE);
-  const hasMore = !showAll && (above1k.length > PAGE_SIZE || positions.length > above1k.length);
+  const [selectedChain, setSelectedChain] = useState<string | null>(null);
+
+  const chains = chainBreakdown ?? Array.from(
+    positions.reduce((map, p) => {
+      map.set(p.chain, (map.get(p.chain) ?? 0) + (p.value ?? 0));
+      return map;
+    }, new Map<string, number>())
+  ).filter(([, v]) => v >= 50).sort((a, b) => b[1] - a[1]);
+
+  const filtered = selectedChain ? positions.filter((p) => p.chain === selectedChain) : positions;
+  const above1k = filtered.filter((p) => (p.value ?? 0) >= 1000);
+  const visible = showAll ? filtered : above1k.slice(0, PAGE_SIZE);
+  const hasMore = !showAll && (above1k.length > PAGE_SIZE || filtered.length > above1k.length);
+
+  function selectChain(chain: string) {
+    setSelectedChain((prev) => prev === chain ? null : chain);
+    setShowAll(false);
+  }
 
   return (
     <div className="space-y-2">
+      {chains.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {chains.map(([chain, value]) => (
+            <button
+              key={chain}
+              onClick={() => selectChain(chain)}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors
+                ${selectedChain === chain
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground hover:bg-muted"
+                }`}
+            >
+              <span className="capitalize">{chain}</span>
+              <span className={selectedChain === chain ? "text-primary-foreground/80" : "font-medium text-foreground"}>
+                {fmtUsd(value, 0)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader className="bg-muted/40 [&_th]:font-semibold">
@@ -60,7 +95,7 @@ export default function HoldingsList({ positions }: { positions: Position[] }) {
       </div>
       {(hasMore || showAll) && (
         <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
-          {showAll ? "Show less" : `Show all ${positions.length} assets`}
+          {showAll ? "Show less" : `Show all ${filtered.length} assets`}
         </Button>
       )}
     </div>

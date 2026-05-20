@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getWallet, upsertBalanceCache } from "@/lib/repo/wallets";
-import { fetchPortfolio, fetchPositions } from "@/lib/zerion";
+import { fetchPortfolio, fetchPositions, fetchDefiPositions } from "@/lib/zerion";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -11,10 +11,19 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   if (!wallet) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
-    const portfolio = await fetchPortfolio(wallet.address);
-    const positions = await fetchPositions(wallet.address);
-    const totalUsd = portfolio.data.attributes.total.positions;
-    const payload = JSON.stringify({ portfolio, positions });
+    const [portfolio, positions, defiPositions] = await Promise.all([
+      fetchPortfolio(wallet.address),
+      fetchPositions(wallet.address),
+      fetchDefiPositions(wallet.address),
+    ]);
+    const walletTotal = portfolio.data.attributes.total.positions;
+    const defiOnly = { data: defiPositions.data.filter((p) => p.attributes.position_type !== "wallet") };
+    const defiNet = defiOnly.data.reduce((sum, p) => {
+      const v = p.attributes.value ?? 0;
+      return sum + (p.attributes.position_type === "loan" ? -v : v);
+    }, 0);
+    const totalUsd = walletTotal + defiNet;
+    const payload = JSON.stringify({ portfolio, positions, defiPositions: defiOnly });
     upsertBalanceCache(id, totalUsd, payload);
     return NextResponse.json({ total_usd: totalUsd, positions: positions.data });
   } catch (err) {
