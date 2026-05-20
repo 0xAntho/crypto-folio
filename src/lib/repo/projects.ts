@@ -2,7 +2,7 @@ import { getDb } from "@/lib/db";
 
 export type ProjectType = "PERP" | "LP" | "OTHER";
 
-export type SyncAdapter = "hyperliquid" | null;
+export type SyncAdapter = "hyperliquid" | "extended" | null;
 
 export interface Project {
   id: string;
