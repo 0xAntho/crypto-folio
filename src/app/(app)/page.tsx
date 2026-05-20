@@ -136,7 +136,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-medium">Farming projects</h2>
           <div className="rounded-md border">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/40 [&_th]:font-semibold">
                 <TableRow>
                   <TableHead>Project</TableHead>
                   <TableHead>Type</TableHead>
@@ -155,7 +155,7 @@ export default function DashboardPage() {
                       <a href={`/projects/${r.id}`} className="hover:underline">{r.name}</a>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{r.type}</Badge>
+                      <Badge variant="outline" className={typeColor(r.type)}>{r.type}</Badge>
                     </TableCell>
                     <TableCell className="text-right">{fmtUsd(r.volume_usd || null)}</TableCell>
                     <TableCell className="text-right">{fmtUsd(r.initial_liq_usd || null)}</TableCell>
@@ -176,6 +176,12 @@ export default function DashboardPage() {
       )}
     </div>
   );
+}
+
+function typeColor(type: string) {
+  if (type === "PERP") return "border-blue-400/40 bg-blue-400/10 text-blue-500";
+  if (type === "LP") return "border-emerald-400/40 bg-emerald-400/10 text-emerald-500";
+  return "border-muted-foreground/30 text-muted-foreground";
 }
 
 function KpiCard({ label, value }: { label: string; value: string }) {

@@ -16,7 +16,7 @@ interface Position {
   chain: string;
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 export default function HoldingsList({ positions }: { positions: Position[] }) {
   const [showAll, setShowAll] = useState(false);
@@ -28,7 +28,7 @@ export default function HoldingsList({ positions }: { positions: Position[] }) {
     <div className="space-y-2">
       <div className="rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/40 [&_th]:font-semibold">
             <TableRow>
               <TableHead>Asset</TableHead>
               <TableHead>Chain</TableHead>

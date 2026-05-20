@@ -98,7 +98,7 @@ export default async function WalletPage({ params }: Props) {
         {entries.length > 0 ? (
           <div className="rounded-md border">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/40 [&_th]:font-semibold">
                 <TableRow>
                   <TableHead>Project</TableHead>
                   <TableHead>Type</TableHead>
@@ -122,7 +122,7 @@ export default async function WalletPage({ params }: Props) {
                       <TableCell className="font-medium">
                         <a href={`/projects/${e.project_id}`} className="hover:underline">{e.project_name}</a>
                       </TableCell>
-                      <TableCell><Badge variant="outline">{e.project_type}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={typeColor(e.project_type)}>{e.project_type}</Badge></TableCell>
                       <TableCell className="text-right">{fmtUsd(e.volume_usd)}</TableCell>
                       <TableCell className="text-right">{fmtUsd(e.initial_liq_usd)}</TableCell>
                       <TableCell className="text-right">{fmtPercent(e.current_apr)}</TableCell>
@@ -155,4 +155,10 @@ export default async function WalletPage({ params }: Props) {
       </div>
     </div>
   );
+}
+
+function typeColor(type: string) {
+  if (type === "PERP") return "border-blue-400/40 bg-blue-400/10 text-blue-500";
+  if (type === "LP") return "border-emerald-400/40 bg-emerald-400/10 text-emerald-500";
+  return "border-muted-foreground/30 text-muted-foreground";
 }
