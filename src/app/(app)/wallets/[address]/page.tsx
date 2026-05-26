@@ -13,6 +13,7 @@ import FarmingEntryDialog from "@/components/projects/FarmingEntryDialog";
 import SyncEntryButton from "@/components/wallet/SyncEntryButton";
 import HoldingsList from "@/components/wallet/HoldingsList";
 import DefiPositionsList from "@/components/wallet/DefiPositionsList";
+import SyncAllFarmingButton from "@/components/wallet/SyncAllFarmingButton";
 
 interface Props {
   params: Promise<{ address: string }>;
@@ -145,7 +146,10 @@ export default async function WalletPage({ params }: Props) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">Farming</h2>
-          <FarmingEntryDialog walletId={wallet.id} projects={allProjects} existingIds={entries.map(e => e.project_id)} />
+          <div className="flex items-center gap-2">
+            <SyncAllFarmingButton entryIds={entries.filter(e => e.project_sync_adapter).map(e => e.id)} />
+            <FarmingEntryDialog walletId={wallet.id} projects={allProjects} existingIds={entries.map(e => e.project_id)} />
+          </div>
         </div>
         {entries.length > 0 ? (
           <div className="rounded-md border">
