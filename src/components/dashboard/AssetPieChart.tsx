@@ -20,6 +20,7 @@ export default function AssetPieChart({ slices }: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-4">
+        <p className="text-xs text-muted-foreground mb-2">Asset allocation</p>
         <ResponsiveContainer width="100%" height={280}>
           <PieChart>
             <Pie data={slices} dataKey="value" nameKey="symbol" cx="50%" cy="50%" outerRadius={100} innerRadius={60}>

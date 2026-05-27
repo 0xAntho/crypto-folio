@@ -51,6 +51,7 @@ export default function PortfolioChart(props: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-4">
+      <p className="text-xs text-muted-foreground mb-2">Portfolio value</p>
       <svg viewBox={VIEW_BOX} className="w-full" style={{ height: 200 }}>
         {yTicks.map((t) => {
           const v = minVal + t * range;
