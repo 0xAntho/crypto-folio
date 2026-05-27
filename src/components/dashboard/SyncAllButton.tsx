@@ -41,9 +41,10 @@ function aggregateBySymbol(snapshots: WalletSnapshot[]): Map<string, number> {
 
 interface Props {
   wallets: WalletSnapshot[];
+  farmingEntryIds: string[];
 }
 
-export default function SyncAllButton({ wallets }: Props) {
+export default function SyncAllButton({ wallets, farmingEntryIds }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [recap, setRecap] = useState<RecapData | null>(null);
@@ -82,7 +83,14 @@ export default function SyncAllButton({ wallets }: Props) {
       losers: deltas.filter((d) => d.delta < 0).slice(-3).reverse(),
     });
 
-    await fetch("/api/portfolio/snapshot", { method: "POST" });
+    for (const id of farmingEntryIds) {
+      await fetch(`/api/wallet-projects/${id}/sync`, { method: "POST" });
+    }
+
+    await Promise.all([
+      fetch("/api/portfolio/snapshot", { method: "POST" }),
+      fetch("/api/projects/snapshot", { method: "POST" }),
+    ]);
 
     setLoading(false);
     router.refresh();

@@ -2,6 +2,7 @@ import { listWallets, listPositionsByWallet } from "@/lib/repo/wallets";
 import { listAll } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
 import { listHistory } from "@/lib/repo/portfolio";
+import { listProjectCostHistory } from "@/lib/repo/projectCostHistory";
 import { aggregateEntries, costPerPoint, costPerMVolume, totalCost } from "@/lib/metrics";
 import { fmtUsd, fmtNumber } from "@/lib/format";
 import {
@@ -15,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import SyncAllButton from "@/components/dashboard/SyncAllButton";
 import AssetPieChart, { type AssetSlice } from "@/components/dashboard/AssetPieChart";
-import FarmingCostChart, { type ProjectCostSlice } from "@/components/dashboard/FarmingCostChart";
+import ProjectCostChart from "@/components/dashboard/ProjectCostChart";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import type { ZerionPosition, ZerionPositionsResponse } from "@/lib/zerion";
 
@@ -25,6 +26,7 @@ export default function DashboardPage() {
   const projects = listProjects();
   const payloads = listPositionsByWallet();
   const history = listHistory();
+  const projectCostHistory = listProjectCostHistory();
 
   const totalPortfolioUsd = wallets.reduce((s, w) => s + (w.total_usd ?? 0), 0);
   const totalFarmingCost = entries.reduce((s, e) => s + totalCost(e.gas_usd, e.fees_usd, e.pnl_usd), 0);
@@ -103,18 +105,11 @@ export default function DashboardPage() {
     };
   });
 
-  const farmingCostSlices: ProjectCostSlice[] = rows.map((r) => ({
-    name: r.name,
-    fees: r.fees_usd,
-    gas: r.gas_usd,
-    pnl: r.pnl_usd,
-  }));
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <SyncAllButton wallets={walletSnapshots} />
+        <SyncAllButton wallets={walletSnapshots} farmingEntryIds={entries.filter((e) => e.project_sync_adapter).map((e) => e.id)} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -126,7 +121,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-4">
         <AssetPieChart slices={pieSlices} />
-        <FarmingCostChart data={farmingCostSlices} />
+        <ProjectCostChart data={projectCostHistory} />
       </div>
 
       <PortfolioChart data={history} />

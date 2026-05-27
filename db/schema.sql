@@ -56,3 +56,15 @@ CREATE TABLE IF NOT EXISTS portfolio_history (
   total_usd   REAL NOT NULL,
   recorded_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS project_cost_history (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id  TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  volume_usd  REAL NOT NULL,
+  fees_usd    REAL NOT NULL,
+  gas_usd     REAL NOT NULL,
+  pnl_usd     REAL NOT NULL,
+  recorded_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pch_project ON project_cost_history(project_id);
