@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { fmtUsd, fmtNumber, fmtPercent } from "@/lib/format";
+import { Pencil, Minus, Plus } from "lucide-react";
 
 interface Position {
   name: string;
@@ -14,13 +19,33 @@ interface Position {
   change1d: number | null;
   change1d_usd: number | null;
   chain: string;
+  isManual?: boolean;
+  holdingId?: string;
+  positionKey?: string;
 }
 
 const PAGE_SIZE = 5;
 
-export default function HoldingsList({ positions, chainBreakdown }: { positions: Position[]; chainBreakdown?: [string, number][] }) {
+export default function HoldingsList({
+  walletId,
+  positions,
+  chainBreakdown,
+}: {
+  walletId: string;
+  positions: Position[];
+  chainBreakdown?: [string, number][];
+}) {
+  const router = useRouter();
   const [showAll, setShowAll] = useState(false);
   const [selectedChain, setSelectedChain] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [symbol, setSymbol] = useState("");
+  const [chain, setChain] = useState("");
+  const [qty, setQty] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Position | null>(null);
 
   const chains = chainBreakdown ?? Array.from(
     positions.reduce((map, p) => {
@@ -29,75 +54,212 @@ export default function HoldingsList({ positions, chainBreakdown }: { positions:
     }, new Map<string, number>())
   ).filter(([, v]) => v >= 50).sort((a, b) => b[1] - a[1]);
 
-  const filtered = selectedChain ? positions.filter((p) => p.chain === selectedChain) : positions;
+  const filtered = (selectedChain ? positions.filter((p) => p.chain === selectedChain) : positions)
+    .slice()
+    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   const above1k = filtered.filter((p) => (p.value ?? 0) >= 1000);
   const visible = showAll ? filtered : above1k.slice(0, PAGE_SIZE);
   const hasMore = !showAll && (above1k.length > PAGE_SIZE || filtered.length > above1k.length);
 
-  function selectChain(chain: string) {
-    setSelectedChain((prev) => prev === chain ? null : chain);
+  function selectChain(c: string) {
+    setSelectedChain((prev) => prev === c ? null : c);
     setShowAll(false);
+  }
+
+  async function handleDelete() {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    setConfirmDelete(null);
+    if (confirmDelete.isManual && confirmDelete.holdingId) {
+      await fetch(`/api/wallets/${walletId}/holdings/${confirmDelete.holdingId}`, { method: "DELETE" });
+    } else if (confirmDelete.positionKey) {
+      await fetch(`/api/wallets/${walletId}/hidden-positions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: confirmDelete.positionKey }),
+      });
+    }
+    setDeleting(false);
+    router.refresh();
+  }
+
+  async function handleAdd() {
+    if (!symbol || !chain || !qty) return;
+    setSaving(true);
+    await fetch(`/api/wallets/${walletId}/holdings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol, chain, qty: Number(qty) }),
+    });
+    setSaving(false);
+    setAddOpen(false);
+    setSymbol("");
+    setChain("");
+    setQty("");
+    router.refresh();
   }
 
   return (
     <div className="space-y-2">
-      {chains.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {chains.map(([chain, value]) => (
-            <button
-              key={chain}
-              onClick={() => selectChain(chain)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors
-                ${selectedChain === chain
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-muted-foreground hover:bg-muted"
-                }`}
-            >
-              <span className="capitalize">{chain}</span>
-              <span className={selectedChain === chain ? "text-primary-foreground/80" : "font-medium text-foreground"}>
-                {fmtUsd(value, 0)}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader className="bg-muted/40 [&_th]:font-semibold">
-            <TableRow>
-              <TableHead>Asset</TableHead>
-              <TableHead>Chain</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead className="text-right">Qty</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead className="text-right">24h change</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visible.map((p, i) => (
-              <TableRow key={i}>
-                <TableCell>
-                  <span className="font-medium">{p.symbol}</span>
-                  <span className="text-xs text-muted-foreground ml-2">{p.name}</span>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">{p.chain}</TableCell>
-                <TableCell className="text-right">{fmtUsd(p.price, 4)}</TableCell>
-                <TableCell className="text-right">{fmtNumber(p.qty, 4)}</TableCell>
-                <TableCell className="text-right">{fmtUsd(p.value)}</TableCell>
-                <TableCell className={`text-right text-sm ${(p.change1d ?? 0) >= 0 ? "text-green-600" : "text-red-500"}`}>
-                  <div>{fmtPercent(p.change1d)}</div>
-                  <div className="text-xs opacity-75">{fmtUsd(p.change1d_usd)}</div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-medium">Holdings</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setEditMode((v) => !v)}
+          className={editMode ? "text-primary" : ""}
+        >
+          <Pencil className="h-4 w-4 mr-1" />
+          {editMode ? "Done" : "Edit"}
+        </Button>
       </div>
-      {(hasMore || showAll) && (
-        <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
-          {showAll ? "Show less" : `Show all ${filtered.length} assets`}
+
+      {positions.length > 0 && (
+        <>
+          {chains.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {chains.map(([c, value]) => (
+                <button
+                  key={c}
+                  onClick={() => selectChain(c)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors
+                    ${selectedChain === c
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground hover:bg-muted"
+                    }`}
+                >
+                  <span className="capitalize">{c}</span>
+                  <span className={selectedChain === c ? "text-primary-foreground/80" : "font-medium text-foreground"}>
+                    {fmtUsd(value, 0)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader className="bg-muted/40 [&_th]:font-semibold">
+                <TableRow>
+                  {editMode && <TableHead className="w-8" />}
+                  <TableHead>Asset</TableHead>
+                  <TableHead>Chain</TableHead>
+                  <TableHead className="text-right">Price</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead className="text-right">Value</TableHead>
+                  <TableHead className="text-right">24h change</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visible.map((p, i) => (
+                  <TableRow key={i}>
+                    {editMode && (
+                      <TableCell className="pr-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          disabled={deleting}
+                          onClick={() => setConfirmDelete(p)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <span className="font-medium">{p.symbol}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{p.name}</span>
+                      {p.isManual && (
+                        <span className="text-xs text-muted-foreground ml-1 opacity-50">(manual)</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{p.chain}</TableCell>
+                    <TableCell className="text-right">{fmtUsd(p.price, 4)}</TableCell>
+                    <TableCell className="text-right">{fmtNumber(p.qty, 4)}</TableCell>
+                    <TableCell className="text-right">{fmtUsd(p.value)}</TableCell>
+                    <TableCell className={`text-right text-sm ${(p.change1d ?? 0) >= 0 ? "text-green-600" : "text-red-500"}`}>
+                      <div>{fmtPercent(p.change1d)}</div>
+                      <div className="text-xs opacity-75">{fmtUsd(p.change1d_usd)}</div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {(hasMore || showAll) && (
+            <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
+              {showAll ? "Show less" : `Show all ${filtered.length} assets`}
+            </Button>
+          )}
+        </>
+      )}
+
+      {editMode && (
+        <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" />
+          Add holding
         </Button>
       )}
+
+      <Dialog open={!!confirmDelete} onOpenChange={(open) => { if (!open) setConfirmDelete(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {confirmDelete?.symbol}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {confirmDelete?.isManual
+              ? "This will permanently delete this manual holding."
+              : "This will hide this position. It won't reappear after future syncs."}
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add holding</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Token symbol</Label>
+              <Input
+                placeholder="e.g. ETH"
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Chain</Label>
+              <Input
+                placeholder="e.g. ethereum, arbitrum, base"
+                value={chain}
+                onChange={(e) => setChain(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Quantity</Label>
+              <Input
+                type="number"
+                placeholder="e.g. 1.5"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Price will be fetched automatically from Zerion.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button onClick={handleAdd} disabled={saving || !symbol || !chain || !qty}>
+              {saving ? "Fetching price…" : "Add"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -98,6 +98,34 @@ export async function fetchDefiPositions(address: string): Promise<ZerionDefiPos
   );
 }
 
+interface ZerionFungibleHit {
+  id: string;
+  attributes: {
+    name: string;
+    symbol: string;
+    market_data: {
+      price: number | null;
+      changes: { percent_1d: number | null } | null;
+    } | null;
+  };
+}
+
+export async function searchFungiblePrice(
+  symbol: string,
+  chainId: string
+): Promise<{ name: string; price: number | null } | null> {
+  try {
+    const res = await zerionGet<{ data: ZerionFungibleHit[] }>(
+      `/fungibles?filter[search_query]=${encodeURIComponent(symbol)}&filter[chain_id]=${encodeURIComponent(chainId)}&currency=usd`
+    );
+    const hit = res.data[0];
+    if (!hit) return null;
+    return { name: hit.attributes.name, price: hit.attributes.market_data?.price ?? null };
+  } catch {
+    return null;
+  }
+}
+
 export function isCacheStale(fetchedAt: number): boolean {
   return Date.now() - fetchedAt > CACHE_TTL_MS;
 }

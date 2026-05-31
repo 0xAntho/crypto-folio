@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { getWalletByAddress, getBalanceCache } from "@/lib/repo/wallets";
+import { listManualHoldings } from "@/lib/repo/manualHoldings";
+import { listHiddenKeys } from "@/lib/repo/hiddenPositions";
 import { listByWallet } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
 import { fmtUsd, fmtNumber, fmtPercent, timeAgo } from "@/lib/format";
@@ -43,7 +45,9 @@ export default async function WalletPage({ params }: Props) {
   let positions: Array<{
     name: string; symbol: string; qty: number; value: number | null;
     price: number | null; change1d: number | null; change1d_usd: number | null; chain: string;
+    isManual?: boolean; holdingId?: string; positionKey?: string;
   }> = [];
+  let hiddenValue = 0;
 
   let chainByValue: [string, number][] = [];
 
@@ -52,10 +56,12 @@ export default async function WalletPage({ params }: Props) {
     qty: number; value: number | null; price: number | null;
   }> = [];
 
+  const hiddenKeys = listHiddenKeys(wallet.id);
+
   if (cache) {
     try {
       const parsed = JSON.parse(cache.payload);
-      positions = (parsed.positions?.data ?? []).map((p: {
+      const rawPositions = (parsed.positions?.data ?? []) as Array<{
         attributes: {
           name: string;
           quantity: { float: number };
@@ -65,20 +71,29 @@ export default async function WalletPage({ params }: Props) {
           fungible_info: { name: string; symbol: string; implementations: Array<{ chain_id: string }> };
         };
         relationships: { chain: { data: { id: string } } };
-      }) => {
+      }>;
+      for (const p of rawPositions) {
+        const symbol = p.attributes.fungible_info.symbol;
+        const chain = p.relationships.chain.data.id;
+        const key = `${symbol}:${chain}`;
+        if (hiddenKeys.has(key)) {
+          hiddenValue += p.attributes.value ?? 0;
+          continue;
+        }
         const change1d = p.attributes.changes?.percent_1d ?? null;
         const value = p.attributes.value;
-        return {
+        positions.push({
           name: p.attributes.fungible_info.name,
-          symbol: p.attributes.fungible_info.symbol,
+          symbol,
           qty: p.attributes.quantity.float,
           value,
           price: p.attributes.price,
           change1d,
           change1d_usd: value != null && change1d != null ? value * (change1d / 100) : null,
-          chain: p.relationships.chain.data.id,
-        };
-      });
+          chain,
+          positionKey: key,
+        });
+      }
 
       const rawDefi = (parsed.defiPositions?.data ?? []) as RawDefiPos[];
       defiPositions = rawDefi.map((p) => ({
@@ -108,6 +123,27 @@ export default async function WalletPage({ params }: Props) {
     }
   }
 
+  const manualHoldings = listManualHoldings(wallet.id);
+  let manualValue = 0;
+  for (const h of manualHoldings) {
+    const value = h.price != null ? h.qty * h.price : null;
+    manualValue += value ?? 0;
+    positions.push({
+      name: h.name,
+      symbol: h.symbol,
+      qty: h.qty,
+      value,
+      price: h.price,
+      change1d: null,
+      change1d_usd: null,
+      chain: h.chain,
+      isManual: true,
+      holdingId: h.id,
+    });
+  }
+
+  const adjustedTotal = (wallet.total_usd ?? 0) - hiddenValue + manualValue;
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -117,7 +153,7 @@ export default async function WalletPage({ params }: Props) {
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xl font-semibold">{fmtUsd(wallet.total_usd, 0)}</p>
+            <p className="text-xl font-semibold">{fmtUsd(adjustedTotal, 0)}</p>
             {cache && (
               <p className="text-xs text-muted-foreground">Synced {timeAgo(cache.fetched_at)}</p>
             )}
@@ -127,12 +163,9 @@ export default async function WalletPage({ params }: Props) {
       </div>
 
       {/* Holdings */}
-      {positions.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-medium">Holdings</h2>
-          <HoldingsList positions={positions} chainBreakdown={chainByValue} />
-        </div>
-      )}
+      <div className="space-y-3">
+        <HoldingsList walletId={wallet.id} positions={positions} chainBreakdown={chainByValue} />
+      </div>
 
       {/* DeFi Positions */}
       {defiPositions.length > 0 && (

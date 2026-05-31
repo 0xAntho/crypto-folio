@@ -17,5 +17,21 @@ export function getDb(): Database.Database {
   try { _db.exec(`ALTER TABLE wallet_project ADD COLUMN pnl_usd REAL`); } catch {}
   try { _db.exec(`ALTER TABLE wallet ADD COLUMN sort_order INTEGER`); } catch {}
   _db.exec(`UPDATE wallet SET sort_order = created_at WHERE sort_order IS NULL`);
+  _db.exec(`CREATE TABLE IF NOT EXISTS manual_holding (
+    id TEXT PRIMARY KEY,
+    wallet_id TEXT NOT NULL REFERENCES wallet(id) ON DELETE CASCADE,
+    symbol TEXT NOT NULL,
+    name TEXT NOT NULL,
+    chain TEXT NOT NULL,
+    qty REAL NOT NULL,
+    price REAL,
+    price_fetched_at INTEGER
+  )`);
+  _db.exec(`CREATE TABLE IF NOT EXISTS hidden_position (
+    id TEXT PRIMARY KEY,
+    wallet_id TEXT NOT NULL REFERENCES wallet(id) ON DELETE CASCADE,
+    key TEXT NOT NULL,
+    UNIQUE(wallet_id, key)
+  )`);
   return _db;
 }
