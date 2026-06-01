@@ -17,6 +17,7 @@ export interface BalanceCache {
 
 export interface WalletWithCache extends Wallet {
   total_usd: number | null;
+  hl_total_usd: number | null;
   fetched_at: number | null;
 }
 
@@ -24,9 +25,10 @@ export function listWallets(): WalletWithCache[] {
   const db = getDb();
   return db
     .prepare(
-      `SELECT w.*, bc.total_usd, bc.fetched_at
+      `SELECT w.*, bc.total_usd, bc.fetched_at, hlc.hl_total_usd
        FROM wallet w
        LEFT JOIN balance_cache bc ON bc.wallet_id = w.id
+       LEFT JOIN hl_spot_cache hlc ON hlc.wallet_id = w.id
        ORDER BY COALESCE(w.sort_order, w.created_at) ASC`
     )
     .all() as WalletWithCache[];
@@ -36,9 +38,10 @@ export function getWallet(id: string): WalletWithCache | undefined {
   const db = getDb();
   return db
     .prepare(
-      `SELECT w.*, bc.total_usd, bc.fetched_at
+      `SELECT w.*, bc.total_usd, bc.fetched_at, hlc.hl_total_usd
        FROM wallet w
        LEFT JOIN balance_cache bc ON bc.wallet_id = w.id
+       LEFT JOIN hl_spot_cache hlc ON hlc.wallet_id = w.id
        WHERE w.id = ?`
     )
     .get(id) as WalletWithCache | undefined;
@@ -48,9 +51,10 @@ export function getWalletByAddress(address: string): WalletWithCache | undefined
   const db = getDb();
   return db
     .prepare(
-      `SELECT w.*, bc.total_usd, bc.fetched_at
+      `SELECT w.*, bc.total_usd, bc.fetched_at, hlc.hl_total_usd
        FROM wallet w
        LEFT JOIN balance_cache bc ON bc.wallet_id = w.id
+       LEFT JOIN hl_spot_cache hlc ON hlc.wallet_id = w.id
        WHERE w.address = ?`
     )
     .get(address.toLowerCase()) as WalletWithCache | undefined;

@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const history = listHistory();
   const projectCostHistory = listProjectCostHistory();
 
-  const totalPortfolioUsd = wallets.reduce((s, w) => s + (w.total_usd ?? 0), 0);
+  const totalPortfolioUsd = wallets.reduce((s, w) => s + (w.total_usd ?? 0) + (w.hl_total_usd ?? 0), 0);
   const totalFarmingCost = entries.reduce((s, e) => s + totalCost(e.gas_usd, e.fees_usd, e.pnl_usd), 0);
   const totalPoints = entries.reduce((s, e) => s + (e.points ?? 0), 0);
 

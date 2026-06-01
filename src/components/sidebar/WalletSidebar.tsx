@@ -147,7 +147,7 @@ export default function WalletSidebar({ wallets: initial }: Props) {
               <span className="font-medium truncate">{w.label}</span>
               <span className="text-xs text-muted-foreground flex justify-between">
                 <span>{truncateAddress(w.address)}</span>
-                <span>{w.total_usd != null ? fmtUsd(w.total_usd, 0) : "—"}</span>
+                <span>{(w.total_usd != null || w.hl_total_usd != null) ? fmtUsd((w.total_usd ?? 0) + (w.hl_total_usd ?? 0), 0) : "—"}</span>
               </span>
             </Link>
           </div>

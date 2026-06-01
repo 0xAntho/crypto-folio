@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { getWalletByAddress, getBalanceCache } from "@/lib/repo/wallets";
 import { listManualHoldings } from "@/lib/repo/manualHoldings";
 import { listHiddenKeys } from "@/lib/repo/hiddenPositions";
+import { getHLSpotCache } from "@/lib/repo/hlSpotCache";
+import type { HLSpotPosition } from "@/lib/hyperliquid";
 import { listByWallet } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
 import { fmtUsd, fmtNumber, fmtPercent, timeAgo } from "@/lib/format";
@@ -11,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import WalletActions from "@/components/wallet/WalletActions";
+import SyncHLSpotButton from "@/components/wallet/SyncHLSpotButton";
 import FarmingEntryDialog from "@/components/projects/FarmingEntryDialog";
 import SyncEntryButton from "@/components/wallet/SyncEntryButton";
 import HoldingsList from "@/components/wallet/HoldingsList";
@@ -107,17 +110,6 @@ export default async function WalletPage({ params }: Props) {
       })).filter((p) => (p.value ?? 0) > 1)
         .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
-      const chainMap = new Map<string, number>();
-      for (const p of positions) {
-        chainMap.set(p.chain, (chainMap.get(p.chain) ?? 0) + (p.value ?? 0));
-      }
-      for (const p of defiPositions) {
-        const v = p.type === "loan" ? -(p.value ?? 0) : (p.value ?? 0);
-        chainMap.set(p.chain, (chainMap.get(p.chain) ?? 0) + v);
-      }
-      chainByValue = Array.from(chainMap)
-        .filter(([, v]) => v >= 50)
-        .sort((a, b) => b[1] - a[1]);
     } catch {
       // malformed cache, ignore
     }
@@ -142,7 +134,46 @@ export default async function WalletPage({ params }: Props) {
     });
   }
 
-  const adjustedTotal = (wallet.total_usd ?? 0) - hiddenValue + manualValue;
+  const hlCache = getHLSpotCache(wallet.id);
+  let hlValue = 0;
+  if (hlCache) {
+    try {
+      const hlPositions = JSON.parse(hlCache.payload) as HLSpotPosition[];
+      for (const p of hlPositions) {
+        const key = `${p.symbol}:hyperliquid`;
+        if (hiddenKeys.has(key)) continue;
+        hlValue += p.value ?? 0;
+        const value = p.value;
+        positions.push({
+          name: p.symbol,
+          symbol: p.symbol,
+          qty: p.qty,
+          value,
+          price: p.price,
+          change1d: p.change1d,
+          change1d_usd: value != null && p.change1d != null ? value * (p.change1d / 100) : null,
+          chain: "hyperliquid",
+          positionKey: key,
+        });
+      }
+    } catch {
+      // malformed cache, ignore
+    }
+  }
+
+  const adjustedTotal = (wallet.total_usd ?? 0) - hiddenValue + manualValue + hlValue;
+
+  const chainMap = new Map<string, number>();
+  for (const p of positions) {
+    chainMap.set(p.chain, (chainMap.get(p.chain) ?? 0) + (p.value ?? 0));
+  }
+  for (const p of defiPositions) {
+    const v = p.type === "loan" ? -(p.value ?? 0) : (p.value ?? 0);
+    chainMap.set(p.chain, (chainMap.get(p.chain) ?? 0) + v);
+  }
+  chainByValue = Array.from(chainMap)
+    .filter(([, v]) => v >= 50)
+    .sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="space-y-8">
@@ -158,6 +189,7 @@ export default async function WalletPage({ params }: Props) {
               <p className="text-xs text-muted-foreground">Synced {timeAgo(cache.fetched_at)}</p>
             )}
           </div>
+          <SyncHLSpotButton walletId={wallet.id} />
           <WalletActions walletId={wallet.id} address={wallet.address} label={wallet.label} />
         </div>
       </div>

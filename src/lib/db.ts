@@ -27,6 +27,13 @@ export function getDb(): Database.Database {
     price REAL,
     price_fetched_at INTEGER
   )`);
+  _db.exec(`CREATE TABLE IF NOT EXISTS hl_spot_cache (
+    wallet_id    TEXT PRIMARY KEY REFERENCES wallet(id) ON DELETE CASCADE,
+    payload      TEXT NOT NULL,
+    hl_total_usd REAL NOT NULL DEFAULT 0,
+    fetched_at   INTEGER NOT NULL
+  )`);
+  try { _db.exec(`ALTER TABLE hl_spot_cache ADD COLUMN hl_total_usd REAL NOT NULL DEFAULT 0`); } catch {}
   _db.exec(`CREATE TABLE IF NOT EXISTS hidden_position (
     id TEXT PRIMARY KEY,
     wallet_id TEXT NOT NULL REFERENCES wallet(id) ON DELETE CASCADE,
