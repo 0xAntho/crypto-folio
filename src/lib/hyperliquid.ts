@@ -4,10 +4,9 @@ const PAGE_SIZE = 2000;
 // --- Spot + account holdings ---
 
 interface SpotBalance { coin: string; hold: string; total: string; entryNtl: string }
-interface SpotToken { name: string; index: number }
-interface SpotUniversePair { tokens: [number, number] }
-interface SpotMeta { universe: SpotUniversePair[]; tokens: SpotToken[] }
-interface SpotAssetCtx { midPx: string | null; prevDayPx: string | null }
+interface SpotToken { name: string; index: number; tokenId: string }
+interface SpotMeta { tokens: SpotToken[] }
+interface TokenDetails { midPx: string | null; prevDayPx: string | null }
 interface ClearinghouseState { marginSummary: { accountValue: string } }
 type DelegatorState = Array<{ validator: string; amount: string }>;
 interface VaultDetails {
@@ -29,32 +28,40 @@ export interface HLSpotPosition {
 }
 
 export async function fetchHLHoldings(address: string): Promise<HLSpotPosition[]> {
-  const [[spotMeta, assetCtxs], { balances }, perpState, delegatorState, vaultDetails] = await Promise.all([
-    hlPost<[SpotMeta, SpotAssetCtx[]]>({ type: "spotMetaAndAssetCtxs" }),
+  const [spotMeta, { balances }, perpState, delegatorState, vaultDetails] = await Promise.all([
+    hlPost<SpotMeta>({ type: "spotMeta" }),
     hlPost<{ balances: SpotBalance[] }>({ type: "spotClearinghouseState", user: address }),
     hlPost<ClearinghouseState>({ type: "clearinghouseState", user: address }).catch((e) => { console.error("[hl] clearinghouseState failed:", e); return null; }),
     hlPost<DelegatorState>({ type: "delegations", user: address }).catch((e) => { console.error("[hl] delegations failed:", e); return null; }),
     hlPost<VaultDetails>({ type: "vaultDetails", vaultAddress: HLP_VAULT, user: address }).catch((e) => { console.error("[hl] vaultDetails failed:", e); return null; }),
   ]);
 
+  const tokenIdMap = new Map<string, string>(spotMeta.tokens.map((t) => [t.name, t.tokenId]));
+
+  const heldCoins = Array.from(new Set([
+    ...balances
+      .filter((b) => parseFloat(b.total) > 0 && !STABLECOINS.has(b.coin) && b.coin !== "USDC")
+      .map((b) => b.coin),
+    "HYPE", // always fetch for staked HYPE pricing
+  ]));
+
   const priceMap = new Map<string, { price: number; change1d: number | null }>();
   priceMap.set("USDC", { price: 1, change1d: 0 });
   for (const stable of STABLECOINS) priceMap.set(stable, { price: 1, change1d: 0 });
 
-  for (let i = 0; i < spotMeta.universe.length; i++) {
-    const pair = spotMeta.universe[i];
-    const ctx = assetCtxs[i];
-    if (!ctx?.midPx) continue;
-    const baseToken = spotMeta.tokens.find((t) => t.index === pair.tokens[0]);
-    if (!baseToken) continue;
-    const price = parseFloat(ctx.midPx);
-    const prevPrice = ctx.prevDayPx ? parseFloat(ctx.prevDayPx) : null;
-    const change1d = prevPrice && prevPrice > 0 ? ((price - prevPrice) / prevPrice) * 100 : null;
-    // Don't overwrite stablecoins — their spot price may be quoted in a non-USD base
-    if (!STABLECOINS.has(baseToken.name)) {
-      priceMap.set(baseToken.name, { price, change1d });
-    }
-  }
+  await Promise.all(
+    heldCoins
+      .filter((coin) => tokenIdMap.has(coin))
+      .map(async (coin) => {
+        const tokenId = tokenIdMap.get(coin)!;
+        const details = await hlPost<TokenDetails>({ type: "tokenDetails", tokenId }).catch(() => null);
+        if (!details?.midPx) return;
+        const price = parseFloat(details.midPx);
+        const prevPrice = details.prevDayPx ? parseFloat(details.prevDayPx) : null;
+        const change1d = prevPrice && prevPrice > 0 ? ((price - prevPrice) / prevPrice) * 100 : null;
+        priceMap.set(coin, { price, change1d });
+      })
+  );
 
   const positions: HLSpotPosition[] = balances
     .filter((b) => parseFloat(b.total) > 0)

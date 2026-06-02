@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,11 @@ export default function HoldingsList({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Position | null>(null);
 
+  const [editingCell, setEditingCell] = useState<{ rowKey: string; field: "qty" | "price" } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [savingCell, setSavingCell] = useState(false);
+  const savingRef = useRef(false);
+
   const chains = chainBreakdown ?? Array.from(
     positions.reduce((map, p) => {
       map.set(p.chain, (map.get(p.chain) ?? 0) + (p.value ?? 0));
@@ -61,9 +66,52 @@ export default function HoldingsList({
   const visible = showAll ? filtered : above1k.slice(0, PAGE_SIZE);
   const hasMore = !showAll && (above1k.length > PAGE_SIZE || filtered.length > above1k.length);
 
+  function rowKey(p: Position) {
+    return p.holdingId ?? p.positionKey ?? `${p.symbol}:${p.chain}`;
+  }
+
   function selectChain(c: string) {
     setSelectedChain((prev) => prev === c ? null : c);
     setShowAll(false);
+  }
+
+  function startEdit(p: Position, field: "qty" | "price") {
+    setEditingCell({ rowKey: rowKey(p), field });
+    setEditValue(String(field === "qty" ? p.qty : (p.price ?? "")));
+  }
+
+  async function saveEdit(p: Position) {
+    if (!editingCell || savingRef.current) return;
+    const val = parseFloat(editValue);
+    if (isNaN(val) || val < 0) {
+      setEditingCell(null);
+      return;
+    }
+    savingRef.current = true;
+    setSavingCell(true);
+
+    if (p.isManual && p.holdingId) {
+      await fetch(`/api/wallets/${walletId}/holdings/${p.holdingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [editingCell.field]: val }),
+      });
+    } else if (p.positionKey) {
+      await fetch(`/api/wallets/${walletId}/position-overrides`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: p.positionKey, [editingCell.field]: val }),
+      });
+    }
+
+    savingRef.current = false;
+    setSavingCell(false);
+    setEditingCell(null);
+    router.refresh();
+  }
+
+  function cancelEdit() {
+    setEditingCell(null);
   }
 
   async function handleDelete() {
@@ -99,6 +147,49 @@ export default function HoldingsList({
     router.refresh();
   }
 
+  function EditableCell({
+    p,
+    field,
+    display,
+  }: {
+    p: Position;
+    field: "qty" | "price";
+    display: string;
+  }) {
+    const key = rowKey(p);
+    const isEditing = editingCell?.rowKey === key && editingCell?.field === field;
+
+    if (!editMode) return <>{display}</>;
+
+    if (isEditing) {
+      return (
+        <Input
+          type="number"
+          className="h-7 w-28 text-right ml-auto"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={() => saveEdit(p)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); saveEdit(p); }
+            if (e.key === "Escape") cancelEdit();
+          }}
+          disabled={savingCell}
+          autoFocus
+        />
+      );
+    }
+
+    return (
+      <span
+        className="cursor-pointer rounded px-1 hover:bg-muted transition-colors"
+        onClick={() => startEdit(p, field)}
+        title={`Click to edit ${field}`}
+      >
+        {display}
+      </span>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -106,7 +197,7 @@ export default function HoldingsList({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setEditMode((v) => !v)}
+          onClick={() => { setEditMode((v) => !v); setEditingCell(null); }}
           className={editMode ? "text-primary" : ""}
         >
           <Pencil className="h-4 w-4 mr-1" />
@@ -173,8 +264,12 @@ export default function HoldingsList({
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{p.chain}</TableCell>
-                    <TableCell className="text-right">{fmtUsd(p.price, 4)}</TableCell>
-                    <TableCell className="text-right">{fmtNumber(p.qty, 4)}</TableCell>
+                    <TableCell className="text-right">
+                      <EditableCell p={p} field="price" display={fmtUsd(p.price, 4)} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <EditableCell p={p} field="qty" display={fmtNumber(p.qty, 4)} />
+                    </TableCell>
                     <TableCell className="text-right">{fmtUsd(p.value)}</TableCell>
                     <TableCell className={`text-right text-sm ${(p.change1d ?? 0) >= 0 ? "text-green-600" : "text-red-500"}`}>
                       <div>{fmtPercent(p.change1d)}</div>

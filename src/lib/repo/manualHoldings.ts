@@ -36,6 +36,12 @@ export function createManualHolding(
   return { id, wallet_id: walletId, symbol, name, chain, qty, price, price_fetched_at: now };
 }
 
+export function updateManualHolding(id: string, walletId: string, qty: number | null, price: number | null): void {
+  getDb()
+    .prepare(`UPDATE manual_holding SET qty = COALESCE(?, qty), price = COALESCE(?, price) WHERE id = ? AND wallet_id = ?`)
+    .run(qty, price, id, walletId);
+}
+
 export function deleteManualHolding(id: string, walletId: string): void {
   getDb()
     .prepare(`DELETE FROM manual_holding WHERE id = ? AND wallet_id = ?`)

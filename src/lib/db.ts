@@ -40,5 +40,12 @@ export function getDb(): Database.Database {
     key TEXT NOT NULL,
     UNIQUE(wallet_id, key)
   )`);
+  _db.exec(`CREATE TABLE IF NOT EXISTS position_override (
+    wallet_id TEXT NOT NULL REFERENCES wallet(id) ON DELETE CASCADE,
+    position_key TEXT NOT NULL,
+    qty_override REAL,
+    price_override REAL,
+    PRIMARY KEY (wallet_id, position_key)
+  )`);
   return _db;
 }

@@ -3,6 +3,7 @@ import { getWalletByAddress, getBalanceCache } from "@/lib/repo/wallets";
 import { listManualHoldings } from "@/lib/repo/manualHoldings";
 import { listHiddenKeys } from "@/lib/repo/hiddenPositions";
 import { getHLSpotCache } from "@/lib/repo/hlSpotCache";
+import { getPositionOverrides } from "@/lib/repo/positionOverrides";
 import type { HLSpotPosition } from "@/lib/hyperliquid";
 import { listByWallet } from "@/lib/repo/walletProjects";
 import { listProjects } from "@/lib/repo/projects";
@@ -41,6 +42,7 @@ export default async function WalletPage({ params }: Props) {
   if (!wallet) notFound();
 
   const cache = getBalanceCache(wallet.id);
+  const overrides = getPositionOverrides(wallet.id);
   const entries = listByWallet(wallet.id);
   const allProjects = listProjects();
 
@@ -82,14 +84,17 @@ export default async function WalletPage({ params }: Props) {
           hiddenValue += p.attributes.value ?? 0;
           continue;
         }
+        const override = overrides.get(key);
+        const qty = override?.qty_override ?? p.attributes.quantity.float;
+        const price = override?.price_override ?? p.attributes.price;
         const change1d = p.attributes.changes?.percent_1d ?? null;
-        const value = p.attributes.value;
+        const value = price != null ? qty * price : null;
         positions.push({
           name: p.attributes.fungible_info.name,
           symbol,
-          qty: p.attributes.quantity.float,
+          qty,
           value,
-          price: p.attributes.price,
+          price,
           change1d,
           change1d_usd: value != null && change1d != null ? value * (change1d / 100) : null,
           chain,
@@ -141,14 +146,17 @@ export default async function WalletPage({ params }: Props) {
       for (const p of hlPositions) {
         const key = `${p.symbol}:hyperliquid`;
         if (hiddenKeys.has(key)) continue;
-        hlValue += p.value ?? 0;
-        const value = p.value;
+        const override = overrides.get(key);
+        const qty = override?.qty_override ?? p.qty;
+        const price = override?.price_override ?? p.price;
+        const value = price != null ? qty * price : null;
+        hlValue += value ?? 0;
         positions.push({
           name: p.symbol,
           symbol: p.symbol,
-          qty: p.qty,
+          qty,
           value,
-          price: p.price,
+          price,
           change1d: p.change1d,
           change1d_usd: value != null && p.change1d != null ? value * (p.change1d / 100) : null,
           chain: "hyperliquid",
