@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import WalletActions from "@/components/wallet/WalletActions";
-import SyncHLSpotButton from "@/components/wallet/SyncHLSpotButton";
 import FarmingEntryDialog from "@/components/projects/FarmingEntryDialog";
 import SyncEntryButton from "@/components/wallet/SyncEntryButton";
 import HoldingsList from "@/components/wallet/HoldingsList";
@@ -189,7 +188,6 @@ export default async function WalletPage({ params }: Props) {
               <p className="text-xs text-muted-foreground">Synced {timeAgo(cache.fetched_at)}</p>
             )}
           </div>
-          <SyncHLSpotButton walletId={wallet.id} />
           <WalletActions walletId={wallet.id} address={wallet.address} label={wallet.label} />
         </div>
       </div>

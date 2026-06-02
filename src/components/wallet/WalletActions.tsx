@@ -29,7 +29,10 @@ export default function WalletActions({ walletId, address, label }: Props) {
 
   async function sync() {
     setSyncing(true);
-    await fetch(`/api/wallets/${walletId}/sync`, { method: "POST" });
+    await Promise.all([
+      fetch(`/api/wallets/${walletId}/sync`, { method: "POST" }),
+      fetch(`/api/wallets/${walletId}/sync-hl-spot`, { method: "POST" }),
+    ]);
     setSyncing(false);
     router.refresh();
   }

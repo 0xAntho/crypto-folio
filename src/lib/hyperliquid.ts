@@ -33,7 +33,7 @@ export async function fetchHLHoldings(address: string): Promise<HLSpotPosition[]
     hlPost<[SpotMeta, SpotAssetCtx[]]>({ type: "spotMetaAndAssetCtxs" }),
     hlPost<{ balances: SpotBalance[] }>({ type: "spotClearinghouseState", user: address }),
     hlPost<ClearinghouseState>({ type: "clearinghouseState", user: address }).catch((e) => { console.error("[hl] clearinghouseState failed:", e); return null; }),
-    hlPost<DelegatorState>({ type: "delegatorState", user: address }).catch((e) => { console.error("[hl] delegatorState failed:", e); return null; }),
+    hlPost<DelegatorState>({ type: "delegations", user: address }).catch((e) => { console.error("[hl] delegations failed:", e); return null; }),
     hlPost<VaultDetails>({ type: "vaultDetails", vaultAddress: HLP_VAULT, user: address }).catch((e) => { console.error("[hl] vaultDetails failed:", e); return null; }),
   ]);
 
