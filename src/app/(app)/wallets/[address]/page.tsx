@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getWalletByAddress, getBalanceCache } from "@/lib/repo/wallets";
+import { getWalletByAddress, getBalanceCache, saveDisplayedTotal } from "@/lib/repo/wallets";
 import { listManualHoldings } from "@/lib/repo/manualHoldings";
 import { listHiddenKeys } from "@/lib/repo/hiddenPositions";
 import { getHLSpotCache } from "@/lib/repo/hlSpotCache";
@@ -169,6 +169,7 @@ export default async function WalletPage({ params }: Props) {
   }
 
   const adjustedTotal = (wallet.total_usd ?? 0) - hiddenValue + manualValue + hlValue;
+  saveDisplayedTotal(wallet.id, adjustedTotal);
 
   const chainMap = new Map<string, number>();
   for (const p of positions) {

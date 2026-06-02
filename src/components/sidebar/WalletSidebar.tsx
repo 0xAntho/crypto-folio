@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -27,6 +27,7 @@ export default function WalletSidebar({ wallets: initial }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [wallets, setWallets] = useState(initial);
+  useEffect(() => { setWallets(initial); }, [initial]);
   const [open, setOpen] = useState(false);
   const [address, setAddress] = useState("");
   const [label, setLabel] = useState("");
@@ -147,7 +148,7 @@ export default function WalletSidebar({ wallets: initial }: Props) {
               <span className="font-medium truncate">{w.label}</span>
               <span className="text-xs text-muted-foreground flex justify-between">
                 <span>{truncateAddress(w.address)}</span>
-                <span>{(w.total_usd != null || w.hl_total_usd != null) ? fmtUsd((w.total_usd ?? 0) + (w.hl_total_usd ?? 0), 0) : "—"}</span>
+                <span>{w.displayed_total != null ? fmtUsd(w.displayed_total, 0) : (w.total_usd != null || w.hl_total_usd != null) ? fmtUsd((w.total_usd ?? 0) + (w.hl_total_usd ?? 0), 0) : "—"}</span>
               </span>
             </Link>
           </div>

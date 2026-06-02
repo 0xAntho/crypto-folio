@@ -6,6 +6,7 @@ export interface Wallet {
   label: string;
   created_at: number;
   sort_order: number;
+  displayed_total: number | null;
 }
 
 export interface BalanceCache {
@@ -19,6 +20,7 @@ export interface WalletWithCache extends Wallet {
   total_usd: number | null;
   hl_total_usd: number | null;
   fetched_at: number | null;
+  displayed_total: number | null;
 }
 
 export function listWallets(): WalletWithCache[] {
@@ -75,6 +77,12 @@ export function reorderWallets(ids: string[]): void {
   db.transaction(() => {
     ids.forEach((id, i) => update.run(i, id));
   })();
+}
+
+export function saveDisplayedTotal(walletId: string, total: number): void {
+  getDb()
+    .prepare(`UPDATE wallet SET displayed_total = ? WHERE id = ?`)
+    .run(total, walletId);
 }
 
 export function updateWallet(id: string, label: string): void {

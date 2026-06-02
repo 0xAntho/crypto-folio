@@ -16,6 +16,7 @@ export function getDb(): Database.Database {
   try { _db.exec(`ALTER TABLE project ADD COLUMN hl_dex TEXT`); } catch {}
   try { _db.exec(`ALTER TABLE wallet_project ADD COLUMN pnl_usd REAL`); } catch {}
   try { _db.exec(`ALTER TABLE wallet ADD COLUMN sort_order INTEGER`); } catch {}
+  try { _db.exec(`ALTER TABLE wallet ADD COLUMN displayed_total REAL`); } catch {}
   _db.exec(`UPDATE wallet SET sort_order = created_at WHERE sort_order IS NULL`);
   _db.exec(`CREATE TABLE IF NOT EXISTS manual_holding (
     id TEXT PRIMARY KEY,
