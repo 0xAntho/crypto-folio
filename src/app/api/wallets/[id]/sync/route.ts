@@ -8,9 +8,11 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   const wallet = getWallet(id);
+  console.log(`[sync] id=${id} wallet=${wallet?.address ?? "NOT FOUND"}`);
   if (!wallet) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
+    console.log(`[sync] fetching Zerion data for ${wallet.address}`);
     const [portfolio, positions, defiPositions] = await Promise.all([
       fetchPortfolio(wallet.address),
       fetchPositions(wallet.address),
@@ -25,10 +27,11 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     const totalUsd = walletTotal + defiNet;
     const payload = JSON.stringify({ portfolio, positions, defiPositions: defiOnly });
     upsertBalanceCache(id, totalUsd, payload);
+    console.log(`[sync] done id=${id} total_usd=${totalUsd} positions=${positions.data.length}`);
     return NextResponse.json({ total_usd: totalUsd, positions: positions.data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Zerion error";
-    console.error("[sync]", msg);
+    console.error(`[sync] failed id=${id} wallet=${wallet.address}:`, msg);
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

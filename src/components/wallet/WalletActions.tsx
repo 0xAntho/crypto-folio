@@ -29,10 +29,14 @@ export default function WalletActions({ walletId, address, label }: Props) {
 
   async function sync() {
     setSyncing(true);
-    await Promise.all([
+    console.log(`[sync] starting for wallet ${walletId}`);
+    const [zerionRes, hlRes] = await Promise.all([
       fetch(`/api/wallets/${walletId}/sync`, { method: "POST" }),
       fetch(`/api/wallets/${walletId}/sync-hl-spot`, { method: "POST" }),
     ]);
+    console.log(`[sync] zerion status=${zerionRes.status} hl-spot status=${hlRes.status}`);
+    if (!zerionRes.ok) console.error(`[sync] zerion sync failed:`, await zerionRes.json().catch(() => zerionRes.statusText));
+    if (!hlRes.ok) console.error(`[sync] hl-spot sync failed:`, await hlRes.json().catch(() => hlRes.statusText));
     setSyncing(false);
     router.refresh();
   }

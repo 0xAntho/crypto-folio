@@ -54,13 +54,16 @@ export default function SyncAllButton({ wallets, farmingEntryIds }: Props) {
     const oldBySymbol = aggregateBySymbol(wallets);
     const totalBefore = wallets.reduce((s, w) => s + w.totalUsd, 0);
 
+    console.log(`[sync-all] syncing ${wallets.length} wallet(s)`);
     const results: WalletSnapshot[] = [];
     for (const w of wallets) {
       const res = await fetch(`/api/wallets/${w.id}/sync`, { method: "POST" });
+      console.log(`[sync-all] wallet ${w.label} (${w.id}) status=${res.status}`);
       if (res.ok) {
         const data = await res.json();
         results.push({ ...w, totalUsd: data.total_usd ?? w.totalUsd, positions: data.positions ?? [] });
       } else {
+        console.error(`[sync-all] wallet ${w.label} sync failed:`, await res.json().catch(() => res.statusText));
         results.push(w);
       }
     }
@@ -84,13 +87,16 @@ export default function SyncAllButton({ wallets, farmingEntryIds }: Props) {
     });
 
     for (const id of farmingEntryIds) {
-      await fetch(`/api/wallet-projects/${id}/sync`, { method: "POST" });
+      const res = await fetch(`/api/wallet-projects/${id}/sync`, { method: "POST" });
+      console.log(`[sync-all] farming entry ${id} status=${res.status}`);
+      if (!res.ok) console.error(`[sync-all] farming entry ${id} sync failed:`, await res.json().catch(() => res.statusText));
     }
 
-    await Promise.all([
+    const [snapshotRes, projectsRes] = await Promise.all([
       fetch("/api/portfolio/snapshot", { method: "POST" }),
       fetch("/api/projects/snapshot", { method: "POST" }),
     ]);
+    console.log(`[sync-all] portfolio snapshot status=${snapshotRes.status} projects snapshot status=${projectsRes.status}`);
 
     setLoading(false);
     router.refresh();

@@ -69,7 +69,7 @@ export default function DashboardPage() {
   const pieSlices: AssetSlice[] = [
     ...top.map((t) => ({ symbol: t.symbol, value: t.value, pct: total > 0 ? (t.value / total) * 100 : 0 })),
     ...(othersValue > 0 ? [{ symbol: "Others", value: othersValue, pct: total > 0 ? (othersValue / total) * 100 : 0 }] : []),
-  ];
+  ].sort((a, b) => b.value - a.value);
 
   const walletSnapshots = wallets.map((w) => ({
     id: w.id,
