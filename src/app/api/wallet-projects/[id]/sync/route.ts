@@ -26,14 +26,20 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
 
   console.log(`[sync] project=${project.name} sync_adapter=${project.sync_adapter} hl_dex=${project.hl_dex} wallet=${wallet.address}`);
   try {
+    let volume_usd: number | null = null;
+    let pnl_usd: number | null = null;
     if (project.sync_adapter === "hyperliquid") {
       const stats = await fetchWalletStats(wallet.address, project.hl_dex);
-      upsertWalletProject({ ...entry, volume_usd: stats.volume_usd, pnl_usd: stats.pnl_usd, fees_usd: stats.fees_usd });
+      volume_usd = stats.volume_usd;
+      pnl_usd = stats.pnl_usd;
+      upsertWalletProject({ ...entry, volume_usd, pnl_usd, fees_usd: stats.fees_usd });
     } else if (project.sync_adapter === "extended") {
       const stats = await fetchExtendedStats();
-      upsertWalletProject({ ...entry, volume_usd: stats.volume_usd, pnl_usd: stats.pnl_usd, fees_usd: stats.fees_usd });
+      volume_usd = stats.volume_usd;
+      pnl_usd = stats.pnl_usd;
+      upsertWalletProject({ ...entry, volume_usd, pnl_usd, fees_usd: stats.fees_usd });
     }
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, volume_usd, pnl_usd });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Sync error";
     console.error("[wallet-project sync]", msg);

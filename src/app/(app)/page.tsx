@@ -109,7 +109,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <SyncAllButton wallets={walletSnapshots} farmingEntryIds={entries.filter((e) => e.project_sync_adapter).map((e) => e.id)} />
+        <SyncAllButton wallets={walletSnapshots} farmingEntries={entries.filter((e) => e.project_sync_adapter).map((e) => ({ id: e.id, name: e.project_name, type: e.project_type, volume_usd: e.volume_usd, pnl_usd: e.pnl_usd }))} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
