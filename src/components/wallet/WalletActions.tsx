@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Copy, Check, Pencil } from "lucide-react";
+import { RefreshCw, Copy, Check, Pencil, Trash2 } from "lucide-react";
 
 interface Props {
   walletId: string;
@@ -26,6 +26,8 @@ export default function WalletActions({ walletId, address, label }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [newLabel, setNewLabel] = useState(label);
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function sync() {
     setSyncing(true);
@@ -60,6 +62,15 @@ export default function WalletActions({ walletId, address, label }: Props) {
     router.refresh();
   }
 
+  async function deleteWallet() {
+    setDeleting(true);
+    await fetch(`/api/wallets/${walletId}`, { method: "DELETE" });
+    setDeleting(false);
+    setDeleteOpen(false);
+    router.push("/");
+    router.refresh();
+  }
+
   return (
     <>
       <div className="flex gap-2">
@@ -72,6 +83,9 @@ export default function WalletActions({ walletId, address, label }: Props) {
         <Button variant="outline" size="sm" onClick={sync} disabled={syncing}>
           <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
           Sync
+        </Button>
+        <Button variant="outline" size="icon" onClick={() => setDeleteOpen(true)}>
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
 
@@ -90,6 +104,23 @@ export default function WalletActions({ walletId, address, label }: Props) {
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
             <Button onClick={saveLabel} disabled={saving || !newLabel.trim()}>
               {saving ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove wallet</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This will permanently remove &quot;{label}&quot; and all its synced data. This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={deleteWallet} disabled={deleting}>
+              {deleting ? "Removing…" : "Remove"}
             </Button>
           </DialogFooter>
         </DialogContent>
