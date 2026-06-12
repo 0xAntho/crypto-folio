@@ -30,7 +30,6 @@ export default function DashboardPage() {
 
   const totalPortfolioUsd = wallets.reduce((s, w) => s + (w.total_usd ?? 0) + (w.hl_total_usd ?? 0), 0);
   const totalFarmingCost = entries.reduce((s, e) => s + totalCost(e.gas_usd, e.fees_usd, e.pnl_usd), 0);
-  const totalPoints = entries.reduce((s, e) => s + (e.points ?? 0), 0);
 
   // Build per-wallet positions map for sync snapshot
   const positionsByWalletId = new Map<string, ZerionPosition[]>();
@@ -112,11 +111,10 @@ export default function DashboardPage() {
         <SyncAllButton wallets={walletSnapshots} farmingEntries={entries.filter((e) => e.project_sync_adapter).map((e) => ({ id: e.id, name: e.project_name, type: e.project_type, volume_usd: e.volume_usd, pnl_usd: e.pnl_usd }))} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <KpiCard label="Portfolio" value={fmtUsd(totalPortfolioUsd, 0)} />
         <KpiCard label="Wallets" value={String(wallets.length)} />
         <KpiCard label="Farm spend" value={fmtUsd(totalFarmingCost)} />
-        <KpiCard label="Total points" value={fmtNumber(totalPoints, 0)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">

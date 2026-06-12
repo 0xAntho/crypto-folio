@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { fmtUsd } from "@/lib/format";
 
 interface DataPoint {
@@ -24,6 +25,9 @@ const VIEW_BOX = "0 0 " + W + " " + H;
 
 export default function PortfolioChart(props: Props) {
   const { data } = props;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+
   if (data.length < 2) return null;
 
   const points = [...data].reverse();
@@ -43,6 +47,22 @@ export default function PortfolioChart(props: Props) {
     .map((p, i) => (i === 0 ? "M" : "L") + " " + toX(i) + " " + toY(p.total_usd))
     .join(" ");
 
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * W;
+    const ratio = (x - PAD_LEFT) / INNER_W;
+    const idx = Math.round(ratio * (points.length - 1));
+    setHoverIdx(Math.max(0, Math.min(points.length - 1, idx)));
+  }
+
+  function handleMouseLeave() {
+    setHoverIdx(null);
+  }
+
+  const hovered = hoverIdx !== null ? points[hoverIdx] : null;
+
   const yTicks = [0, 0.5, 1];
   const labelStep = Math.max(1, Math.ceil(points.length / 6));
   const xLabelIndices = points
@@ -52,7 +72,15 @@ export default function PortfolioChart(props: Props) {
   return (
     <div className="rounded-xl border bg-card p-4">
       <p className="text-xs text-muted-foreground mb-2">Portfolio value</p>
-      <svg viewBox={VIEW_BOX} className="w-full" style={{ height: 200 }}>
+      <div className="relative">
+      <svg
+        ref={svgRef}
+        viewBox={VIEW_BOX}
+        className="w-full"
+        style={{ height: 200 }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         {yTicks.map((t) => {
           const v = minVal + t * range;
           const y = toY(v);
@@ -79,7 +107,36 @@ export default function PortfolioChart(props: Props) {
             {new Date(points[i].recorded_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </text>
         ))}
+        {hovered && (
+          <g>
+            <line
+              x1={toX(hoverIdx!)}
+              y1={PAD_TOP}
+              x2={toX(hoverIdx!)}
+              y2={H - PAD_BOTTOM}
+              stroke="currentColor"
+              strokeOpacity={0.25}
+            />
+            <circle cx={toX(hoverIdx!)} cy={toY(hovered.total_usd)} r={4} fill="#6366f1" />
+          </g>
+        )}
       </svg>
+      {hovered && (
+        <div
+          className="pointer-events-none absolute rounded-md border bg-popover px-2 py-1 text-xs shadow-md"
+          style={{
+            left: `${(toX(hoverIdx!) / W) * 100}%`,
+            top: `${(toY(hovered.total_usd) / H) * 100}%`,
+            transform: "translate(-50%, -120%)",
+          }}
+        >
+          <p className="font-medium">{fmtUsd(hovered.total_usd, 0)}</p>
+          <p className="text-muted-foreground">
+            {new Date(hovered.recorded_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </p>
+        </div>
+      )}
+      </div>
     </div>
   );
 }

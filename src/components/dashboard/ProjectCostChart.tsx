@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { costPerMVolume } from "@/lib/metrics";
 import { fmtUsd } from "@/lib/format";
 import type { ProjectCostPoint } from "@/lib/repo/projectCostHistory";
@@ -25,6 +25,8 @@ const DATE_OPTS = { month: "short", day: "numeric" } as Intl.DateTimeFormatOptio
 
 export default function ProjectCostChart({ data }: Props) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hoverT, setHoverT] = useState<number | null>(null);
 
   if (data.length === 0) return null;
 
@@ -67,6 +69,38 @@ export default function ProjectCostChart({ data }: Props) {
   const labelStep = Math.max(1, Math.ceil(allTs.length / 6));
   const xLabelTs = allTs.filter((_, i) => i % labelStep === 0 || i === allTs.length - 1);
 
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * W;
+    const t = minT + ((x - PAD_LEFT) / INNER_W) * rangeT;
+    let nearest = allTs[0];
+    let best = Math.abs(allTs[0] - t);
+    for (const ts of allTs) {
+      const diff = Math.abs(ts - t);
+      if (diff < best) {
+        best = diff;
+        nearest = ts;
+      }
+    }
+    setHoverT(nearest);
+  }
+
+  function handleMouseLeave() {
+    setHoverT(null);
+  }
+
+  const hoverEntries =
+    hoverT !== null
+      ? visibleProjects
+          .map((proj) => {
+            const pt = proj.points.find((p) => p.t === hoverT);
+            return pt ? { name: proj.name, color: proj.color, v: pt.v } : null;
+          })
+          .filter((e): e is { name: string; color: string; v: number } => e !== null)
+      : [];
+
   function toggle(id: string) {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -97,7 +131,15 @@ export default function ProjectCostChart({ data }: Props) {
         })}
       </div>
 
-      <svg viewBox={VIEW_BOX} className="w-full" style={{ height: H }}>
+      <div className="relative">
+      <svg
+        ref={svgRef}
+        viewBox={VIEW_BOX}
+        className="w-full"
+        style={{ height: H }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         {Y_TICKS.map((t) => {
           const v = minV + t * rangeV;
           const y = toY(v);
@@ -131,7 +173,50 @@ export default function ProjectCostChart({ data }: Props) {
             {new Date(t).toLocaleDateString("en-US", DATE_OPTS)}
           </text>
         ))}
+
+        {hoverT !== null && (
+          <g>
+            <line
+              x1={toX(hoverT)}
+              y1={PAD_TOP}
+              x2={toX(hoverT)}
+              y2={H - PAD_BOTTOM}
+              stroke="currentColor"
+              strokeOpacity={0.25}
+            />
+            {hoverEntries.map((entry) => (
+              <circle
+                key={entry.name}
+                cx={toX(hoverT)}
+                cy={toY(entry.v)}
+                r={4}
+                fill={entry.color}
+              />
+            ))}
+          </g>
+        )}
       </svg>
+      {hoverT !== null && hoverEntries.length > 0 && (
+        <div
+          className="pointer-events-none absolute rounded-md border bg-popover px-2 py-1 text-xs shadow-md"
+          style={{
+            left: `${(toX(hoverT) / W) * 100}%`,
+            top: `${PAD_TOP}px`,
+            transform: "translate(-50%, -100%)",
+          }}
+        >
+          <p className="font-medium mb-0.5">
+            {new Date(hoverT).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </p>
+          {hoverEntries.map((entry) => (
+            <p key={entry.name} className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ background: entry.color }} />
+              <span className="text-muted-foreground">{entry.name}:</span> {fmtUsd(entry.v, 0)}
+            </p>
+          ))}
+        </div>
+      )}
+      </div>
     </div>
   );
 }
