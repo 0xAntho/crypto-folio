@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -74,9 +74,8 @@ export default function DefiPositionsList({ positions }: { positions: DefiPositi
           {groups.map((g) => {
             const isOpen = expanded.has(g.protocol);
             return (
-              <>
+              <Fragment key={g.protocol}>
                 <TableRow
-                  key={g.protocol}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => toggle(g.protocol)}
                 >
@@ -106,7 +105,7 @@ export default function DefiPositionsList({ positions }: { positions: DefiPositi
                     </TableCell>
                   </TableRow>
                 ))}
-              </>
+              </Fragment>
             );
           })}
         </TableBody>

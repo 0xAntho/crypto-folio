@@ -12,6 +12,7 @@ export interface WalletProject {
   points: number | null;
   pnl_usd: number | null;
   custom_fields: string;
+  status: string;
   updated_at: number;
 }
 
@@ -74,7 +75,7 @@ export function getWalletProject(id: string): WalletProject | undefined {
 }
 
 export function upsertWalletProject(
-  entry: Omit<WalletProject, "updated_at">
+  entry: Omit<WalletProject, "updated_at" | "status">
 ): void {
   const db = getDb();
   db.prepare(
@@ -110,4 +111,8 @@ export function upsertWalletProject(
 
 export function deleteWalletProject(id: string): void {
   getDb().prepare(`DELETE FROM wallet_project WHERE id = ?`).run(id);
+}
+
+export function setWalletProjectStatus(id: string, status: "active" | "closed"): void {
+  getDb().prepare(`UPDATE wallet_project SET status = ? WHERE id = ?`).run(status, id);
 }

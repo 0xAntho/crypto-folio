@@ -49,5 +49,20 @@ export function getDb(): Database.Database {
     price_override REAL,
     PRIMARY KEY (wallet_id, position_key)
   )`);
+  _db.exec(`CREATE TABLE IF NOT EXISTS position_baseline (
+    wallet_id TEXT NOT NULL REFERENCES wallet(id) ON DELETE CASCADE,
+    position_key TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    baseline_price REAL NOT NULL,
+    first_seen_at INTEGER NOT NULL,
+    PRIMARY KEY (wallet_id, position_key)
+  )`);
+  _db.exec(`CREATE TABLE IF NOT EXISTS wallet_balance_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    wallet_id TEXT NOT NULL REFERENCES wallet(id) ON DELETE CASCADE,
+    total_usd REAL NOT NULL,
+    recorded_at INTEGER NOT NULL
+  )`);
+  try { _db.exec(`ALTER TABLE wallet_project ADD COLUMN status TEXT NOT NULL DEFAULT 'active'`); } catch {}
   return _db;
 }

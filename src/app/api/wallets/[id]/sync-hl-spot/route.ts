@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getWallet } from "@/lib/repo/wallets";
 import { fetchHLHoldings } from "@/lib/hyperliquid";
 import { upsertHLSpotCache } from "@/lib/repo/hlSpotCache";
+import { upsertBaselineIfMissing } from "@/lib/repo/positionBaselines";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -17,6 +18,11 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     console.log(`[sync-hl-spot] fetching Hyperliquid holdings for ${wallet.address}`);
     const positions = await fetchHLHoldings(wallet.address);
     upsertHLSpotCache(id, positions);
+
+    for (const p of positions) {
+      if (p.price == null) continue;
+      upsertBaselineIfMissing(id, `${p.symbol}:hyperliquid`, p.symbol, p.price);
+    }
     console.log(`[sync-hl-spot] done id=${id} count=${positions.length}`);
     return NextResponse.json({ ok: true, count: positions.length });
   } catch (err) {

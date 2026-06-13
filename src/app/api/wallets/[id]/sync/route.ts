@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getWallet, upsertBalanceCache } from "@/lib/repo/wallets";
+import { upsertBaselineIfMissing } from "@/lib/repo/positionBaselines";
 import { fetchPortfolio, fetchPositions, fetchDefiPositions } from "@/lib/zerion";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -27,6 +28,14 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     const totalUsd = walletTotal + defiNet;
     const payload = JSON.stringify({ portfolio, positions, defiPositions: defiOnly });
     upsertBalanceCache(id, totalUsd, payload);
+
+    for (const p of positions.data) {
+      const price = p.attributes.price;
+      if (price == null) continue;
+      const symbol = p.attributes.fungible_info.symbol;
+      const chain = p.relationships.chain.data.id;
+      upsertBaselineIfMissing(id, `${symbol}:${chain}`, symbol, price);
+    }
     console.log(`[sync] done id=${id} total_usd=${totalUsd} positions=${positions.data.length}`);
     return NextResponse.json({ total_usd: totalUsd, positions: positions.data });
   } catch (err) {

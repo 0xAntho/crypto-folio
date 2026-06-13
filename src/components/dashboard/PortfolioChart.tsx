@@ -10,6 +10,7 @@ interface DataPoint {
 
 interface Props {
   data: DataPoint[];
+  title?: string;
 }
 
 const W = 800;
@@ -24,7 +25,7 @@ const GRID_DASH = "4 4";
 const VIEW_BOX = "0 0 " + W + " " + H;
 
 export default function PortfolioChart(props: Props) {
-  const { data } = props;
+  const { data, title = "Portfolio value" } = props;
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -71,7 +72,7 @@ export default function PortfolioChart(props: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-4">
-      <p className="text-xs text-muted-foreground mb-2">Portfolio value</p>
+      <p className="text-xs text-muted-foreground mb-2">{title}</p>
       <div className="relative">
       <svg
         ref={svgRef}

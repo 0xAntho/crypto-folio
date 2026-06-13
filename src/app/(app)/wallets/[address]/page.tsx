@@ -16,9 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import WalletActions from "@/components/wallet/WalletActions";
 import FarmingEntryDialog from "@/components/projects/FarmingEntryDialog";
 import SyncEntryButton from "@/components/wallet/SyncEntryButton";
+import ArchiveEntryButton from "@/components/wallet/ArchiveEntryButton";
 import HoldingsList from "@/components/wallet/HoldingsList";
 import DefiPositionsList from "@/components/wallet/DefiPositionsList";
 import SyncAllFarmingButton from "@/components/wallet/SyncAllFarmingButton";
+import PortfolioChart from "@/components/dashboard/PortfolioChart";
+import { listWalletHistory } from "@/lib/repo/walletBalanceHistory";
 
 interface Props {
   params: Promise<{ address: string }>;
@@ -246,7 +249,7 @@ export default async function WalletPage({ params }: Props) {
                 {entries.map((e) => {
                   const cost = totalCost(e.gas_usd, e.fees_usd, e.pnl_usd);
                   return (
-                    <TableRow key={e.id}>
+                    <TableRow key={e.id} className={e.status === "closed" ? "opacity-50" : ""}>
                       <TableCell className="font-medium">
                         <a href={`/projects/${e.project_id}`} className="hover:underline">{e.project_name}</a>
                       </TableCell>
@@ -264,6 +267,7 @@ export default async function WalletPage({ params }: Props) {
                       <TableCell className="text-right">{fmtUsd(costPerMVolume(e.gas_usd, e.fees_usd, e.volume_usd, e.pnl_usd))}</TableCell>
                       <TableCell className="flex items-center gap-1">
                         {e.project_sync_adapter && <SyncEntryButton entryId={e.id} />}
+                        <ArchiveEntryButton entryId={e.id} status={e.status} />
                         <FarmingEntryDialog
                           walletId={wallet.id}
                           projects={allProjects}
@@ -281,6 +285,8 @@ export default async function WalletPage({ params }: Props) {
           <p className="text-sm text-muted-foreground">No farming entries yet.</p>
         )}
       </div>
+
+      <PortfolioChart data={listWalletHistory(wallet.id)} title="Wallet value" />
     </div>
   );
 }

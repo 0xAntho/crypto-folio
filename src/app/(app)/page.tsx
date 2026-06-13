@@ -18,7 +18,13 @@ import SyncAllButton from "@/components/dashboard/SyncAllButton";
 import AssetPieChart, { type AssetSlice } from "@/components/dashboard/AssetPieChart";
 import ProjectCostChart from "@/components/dashboard/ProjectCostChart";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
+import PriceDropAlerts, { type PriceDrop } from "@/components/dashboard/PriceDropAlerts";
+import { getBaselines } from "@/lib/repo/positionBaselines";
+import { getHLSpotCache } from "@/lib/repo/hlSpotCache";
+import type { HLSpotPosition } from "@/lib/hyperliquid";
 import type { ZerionPosition, ZerionPositionsResponse } from "@/lib/zerion";
+
+const DROP_THRESHOLD_PCT = 30;
 
 export default function DashboardPage() {
   const wallets = listWallets();
@@ -56,6 +62,45 @@ export default function DashboardPage() {
     }
   }
 
+  // Price drop alerts: compare current prices against first-seen baselines
+  const drops: PriceDrop[] = [];
+  for (const w of wallets) {
+    const baselines = getBaselines(w.id);
+    if (baselines.size === 0) continue;
+
+    for (const pos of positionsByWalletId.get(w.id) ?? []) {
+      const price = pos.attributes.price;
+      if (price == null) continue;
+      const symbol = pos.attributes.fungible_info.symbol;
+      const chain = pos.relationships.chain.data.id;
+      const baseline = baselines.get(`${symbol}:${chain}`);
+      if (baseline == null || baseline <= 0) continue;
+      const dropPct = ((baseline - price) / baseline) * 100;
+      if (dropPct >= DROP_THRESHOLD_PCT) {
+        drops.push({ symbol, walletLabel: w.label, baselinePrice: baseline, currentPrice: price, dropPct });
+      }
+    }
+
+    const hlCache = getHLSpotCache(w.id);
+    if (hlCache) {
+      try {
+        const hlPositions = JSON.parse(hlCache.payload) as HLSpotPosition[];
+        for (const p of hlPositions) {
+          if (p.price == null) continue;
+          const baseline = baselines.get(`${p.symbol}:hyperliquid`);
+          if (baseline == null || baseline <= 0) continue;
+          const dropPct = ((baseline - p.price) / baseline) * 100;
+          if (dropPct >= DROP_THRESHOLD_PCT) {
+            drops.push({ symbol: p.symbol, walletLabel: w.label, baselinePrice: baseline, currentPrice: p.price, dropPct });
+          }
+        }
+      } catch {
+        // malformed cache, ignore
+      }
+    }
+  }
+  drops.sort((a, b) => b.dropPct - a.dropPct);
+
   const sorted = Array.from(bySymbol.entries())
     .map(([symbol, { value }]) => ({ symbol, value }))
     .sort((a, b) => b.value - a.value);
@@ -80,6 +125,7 @@ export default function DashboardPage() {
   const projectMap = new Map(projects.map((p) => [p.id, p]));
   const byProject = new Map<string, typeof entries>();
   for (const e of entries) {
+    if (e.status === "closed") continue;
     if (!byProject.has(e.project_id)) byProject.set(e.project_id, []);
     byProject.get(e.project_id)!.push(e);
   }
@@ -110,6 +156,8 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <SyncAllButton wallets={walletSnapshots} farmingEntries={entries.filter((e) => e.project_sync_adapter).map((e) => ({ id: e.id, name: e.project_name, type: e.project_type, volume_usd: e.volume_usd, pnl_usd: e.pnl_usd }))} />
       </div>
+
+      <PriceDropAlerts drops={drops} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <KpiCard label="Portfolio" value={fmtUsd(totalPortfolioUsd, 0)} />
