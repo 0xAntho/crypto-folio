@@ -68,7 +68,7 @@ export function createWallet(id: string, address: string, label: string): Wallet
   db.prepare(
     `INSERT INTO wallet (id, address, label, created_at) VALUES (?, ?, ?, ?)`
   ).run(id, address.toLowerCase(), label, now);
-  return { id, address: address.toLowerCase(), label, created_at: now };
+  return { id, address: address.toLowerCase(), label, created_at: now, sort_order: now, displayed_total: null };
 }
 
 export function reorderWallets(ids: string[]): void {

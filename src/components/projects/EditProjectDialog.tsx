@@ -74,7 +74,7 @@ export default function EditProjectDialog({ project }: { project: Project }) {
             </div>
             <div className="space-y-1">
               <Label>Auto-sync</Label>
-              <Select value={syncAdapter} onValueChange={setSyncAdapter}>
+              <Select value={syncAdapter} onValueChange={(v) => setSyncAdapter(v ?? "")}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hyperliquid">Hyperliquid</SelectItem>

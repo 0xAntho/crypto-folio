@@ -1,6 +1,7 @@
 // Run once: node scripts/seed-user.mjs
-// Reads AUTH_USERNAME and AUTH_PASSWORD from .env.local
-import { readFileSync } from "fs";
+// Reads AUTH_USERNAME and AUTH_PASSWORD from .env.local, falling back to process.env
+// (e.g. `railway run node scripts/seed-user.mjs` where there is no .env.local)
+import { readFileSync, existsSync } from "fs";
 import { createHash } from "crypto";
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
@@ -10,13 +11,15 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 
-// Parse .env.local manually
-const env = Object.fromEntries(
-  readFileSync(path.join(root, ".env.local"), "utf-8")
-    .split("\n")
-    .filter((l) => l.includes("=") && !l.startsWith("#"))
-    .map((l) => l.split("=").map((s) => s.trim()))
-);
+const envLocalPath = path.join(root, ".env.local");
+const env = existsSync(envLocalPath)
+  ? Object.fromEntries(
+      readFileSync(envLocalPath, "utf-8")
+        .split("\n")
+        .filter((l) => l.includes("=") && !l.startsWith("#"))
+        .map((l) => l.split("=").map((s) => s.trim()))
+    )
+  : process.env;
 
 const username = env["AUTH_USERNAME"];
 const password = env["AUTH_PASSWORD"];
@@ -25,7 +28,8 @@ if (!username || !password) {
   process.exit(1);
 }
 
-const db = new Database(path.join(root, "db", "crypto-folio.db"));
+const dbDir = process.env.DB_DIR ?? path.join(root, "db");
+const db = new Database(path.join(dbDir, "crypto-folio.db"));
 const schema = readFileSync(path.join(root, "db", "schema.sql"), "utf-8");
 db.exec(schema);
 

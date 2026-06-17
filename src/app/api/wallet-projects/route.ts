@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     current_apr: body.current_apr ?? null,
     gas_usd: body.gas_usd ?? null,
     points: body.points ?? null,
+    pnl_usd: body.pnl_usd ?? null,
     custom_fields: JSON.stringify(body.custom_fields ?? {}),
   });
   return NextResponse.json({ ok: true }, { status: 201 });

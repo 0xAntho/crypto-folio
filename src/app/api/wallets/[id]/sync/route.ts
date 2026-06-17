@@ -20,7 +20,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
       fetchDefiPositions(wallet.address),
     ]);
     const walletTotal = portfolio.data.attributes.total.positions;
-    const defiOnly = { data: defiPositions.data.filter((p) => p.attributes.position_type !== "wallet") };
+    const defiOnly = defiPositions;
     const defiNet = defiOnly.data.reduce((sum, p) => {
       const v = p.attributes.value ?? 0;
       return sum + (p.attributes.position_type === "loan" ? -v : v);

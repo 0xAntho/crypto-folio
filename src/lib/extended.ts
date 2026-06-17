@@ -37,7 +37,7 @@ async function fetchAllTrades(): Promise<{ value: string; fee: string }[]> {
   let page = 0;
 
   while (true) {
-    const qs = cursor != null
+    const qs: string = cursor != null
       ? `?limit=${PAGE_SIZE}&cursor=${cursor}`
       : `?limit=${PAGE_SIZE}`;
     const res = await extGet<TradesResponse>(`/user/trades${qs}`);
@@ -58,7 +58,7 @@ async function fetchAllPositions(): Promise<{ realisedPnl: string }[]> {
   let page = 0;
 
   while (true) {
-    const qs = cursor != null
+    const qs: string = cursor != null
       ? `?limit=${PAGE_SIZE}&cursor=${cursor}`
       : `?limit=${PAGE_SIZE}`;
     const res = await extGet<PositionsResponse>(`/user/positions/history${qs}`);
